@@ -14,7 +14,8 @@ TOKEN = os.getenv("TOKEN")
 ADMIN_ID = 817761548
 BASE_DIR = "data"
 DATA_FILE = os.path.join(BASE_DIR, "data.json")
-
+if not os.path.exists(BASE_DIR):
+    os.makedirs(BASE_DIR)
 
 # ================= LOAD / SAVE =================
 
@@ -61,11 +62,8 @@ def get_admin_menu():
 # ================= START =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Main Menu:",
-        reply_markup=get_main_menu(update.effective_user.id)
-    )
-
+    print("START TRIGGERED")
+    await update.message.reply_text("Bot aktif")
 
 # ================= SEND ITEM =================
 
@@ -237,9 +235,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= MAIN =================
 
 def main():
+    print("TOKEN =", TOKEN)
+
+    if not TOKEN:
+        print("TOKEN NOT FOUND")
+        return
+
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
+
     print("Bot running...")
     app.run_polling()
 
