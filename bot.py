@@ -235,17 +235,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= MAIN =================
 
 def main():
-    print("TOKEN =", TOKEN)
+    print("===== DEBUG START =====")
+
+    TOKEN = os.getenv("TOKEN")
 
     if not TOKEN:
-        print("TOKEN NOT FOUND")
-        return
+        raise Exception("TOKEN NOT LOADED")
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
 
-    print("Bot running...")
+    print("RUNNING POLLING...")
     app.run_polling()
 
 
