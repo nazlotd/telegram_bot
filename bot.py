@@ -242,6 +242,9 @@ def main():
         raise Exception("TOKEN NOT LOADED")
 
     app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
     print("RUNNING POLLING...")
     app.run_polling()
 
