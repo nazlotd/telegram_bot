@@ -1,5 +1,7 @@
 import os
 import json
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
 from telegram import Update, ReplyKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
@@ -16,6 +18,17 @@ BASE_DIR = "data"
 DATA_FILE = os.path.join(BASE_DIR, "data.json")
 if not os.path.exists(BASE_DIR):
     os.makedirs(BASE_DIR)
+
+def keep_alive():
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
+
+    port = int(os.getenv("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    server.serve_forever()
 
 # ================= LOAD / SAVE =================
 
@@ -235,7 +248,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= MAIN =================
 
 def main():
-    print("BOT STARTED")
+    print("BOT STARTED", flush=True)
 
     TOKEN = os.getenv("TOKEN")
     if not TOKEN:
@@ -243,9 +256,9 @@ def main():
 
     app = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
-    print("RUNNING POLLING...")
+    threading.Thread(target=keep_alive).start()
+
+    print("RUNNING POLLING", flush=True)
     app.run_polling()
 
 
