@@ -1,8 +1,7 @@
 import os
 import json
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from datetime import datetime
+TOKEN = os.getenv("TOKEN")
+
 from telegram import Update, ReplyKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
     ApplicationBuilder,
@@ -12,122 +11,178 @@ from telegram.ext import (
     filters
 )
 
-TOKEN = os.getenv("TOKEN")
-ADMIN_ID = 817761548
+# ================= CONFIG =================
+ADMIN_ID = 817761548  # 👈 tukar ke Telegram ID admin
+
 BASE_DIR = "data"
+
 DATA_FILE = os.path.join(BASE_DIR, "data.json")
+
 if not os.path.exists(BASE_DIR):
     os.makedirs(BASE_DIR)
 
-def keep_alive():
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"OK")
-
-    port = int(os.getenv("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), Handler)
-    server.serve_forever()
-
-# ================= LOAD / SAVE =================
-
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {"OR": {}, "GE": {}}
+        return {"OR": {}, "GE": {}, "STANDEE": {}}
     with open(DATA_FILE, "r") as f:
         return json.load(f)
-
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+STANDEE_DATA = {
+    "1": {  
+        "images": ["data/STANDEE/test1.jpeg"],
+        "title": "TEST 1",
+    },
+    "2": {  
+        "images": ["data/STANDEE/test2.jpeg"],
+        "title": "TEST 2",
+    },
+    "3": {  
+        "images": ["data/STANDEE/test3.jpeg"],
+        "title": "TEST 3",
+    },
+    "4": {  
+        "images": ["data/STANDEE/test4.jpeg"],
+        "title": "TEST 4",
+    },
+    "5": {  
+        "images": ["data/STANDEE/test5.jpeg"],
+        "title": "TEST 5"
+    }
 
-def format_date(date_str):
-    try:
-        d = datetime.strptime(date_str, "%Y-%m-%d")
-        return d.strftime("%d/%m/%Y")
-    except:
-        return date_str
+}
 
+# ================= KEYBOARDS =================
+MAIN_MENU = ReplyKeyboardMarkup(
+    [["OR", "GE"], ["👑 Admin"]],
+    resize_keyboard=True
+)
 
-# ================= MENUS =================
+BACK_MENU = ReplyKeyboardMarkup(
+    [["⬅️ Back"]],
+    resize_keyboard=True
+)
 
-def get_main_menu(user_id):
-    keyboard = [
-        ["📂 OR", "📂 GE"],
-        ["STANDEE"]
-    ]
-    if user_id == ADMIN_ID:
-        keyboard.append(["👑 Admin"])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
-
-def get_admin_menu():
-    keyboard = [
+ADMIN_MENU = ReplyKeyboardMarkup(
+    [
         ["UPDATE OR", "UPDATE GE"],
         ["⬅ Back"]
+    ],
+    resize_keyboard=True
+)
+
+# ================= FUNCTIONS =================
+
+def get_main_menu(user_id):
+    buttons = [
+        ["📁 OR", "📁 GE"],
+        ["4 RM10_PERAYAAN", "STANDEE"]
     ]
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
+    if user_id == ADMIN_ID:
+        buttons.append(["👑 Admin"])
 
-# ================= START =================
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("START TRIGGERED")
-    await update.message.reply_text("Bot aktif")
 
-# ================= SEND ITEM =================
+    intro_path = "data/intro.jpeg"
 
-async def send_item(update, context, category, key):
-    data = load_data()
+    if os.path.exists(intro_path):
+        with open(intro_path, "rb") as photo:
+            await update.message.reply_photo(
+                photo=photo,
+                caption="🤖 Welcome ini hanya test dari Nazs."
+            )
+    else:
+        await update.message.reply_text(
+            "🤖 Welcome to OR & GE Bot\n\nSila pilih kategori di bawah."
+        )
 
-    if key not in data[category]:
-        await update.message.reply_text("❌ Item tidak wujud")
-        return
-
-    item = data[category][key]
-
-    media = []
-    for img in item["images"]:
-        path = os.path.join(BASE_DIR, img)
-        if os.path.exists(path):
-            media.append(InputMediaPhoto(open(path, "rb")))
-
-    if media:
-        await update.message.reply_media_group(media)
-
-    caption = (
-        f"📌 {item['title']}\n"
-        f"Effective Period:\n"
-        f"{format_date(item['start'])} – {format_date(item['end'])}"
+    # Lepas intro → baru tunjuk menu
+    await update.message.reply_text(
+        "Main Menu:",
+    reply_markup=get_main_menu(update.effective_user.id)
     )
 
-    await update.message.reply_text(caption)
+async def show_or_menu(update, context):
+    data = load_data()
+    buttons = [[f"OR {k}"] for k in data["OR"].keys()]
+    buttons.append(["⬅️ Back"])
+    await update.message.reply_text(
+        "📁 OR LIST",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    )
 
+async def show_ge_menu(update, context):
+    data = load_data()
+    buttons = [[f"GE {k}"] for k in data["GE"].keys()]
+    buttons.append(["⬅️ Back"])
+    await update.message.reply_text(
+        "📁 GE LIST",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    )
+
+async def show_admin_menu(update, context):
+    await update.message.reply_text(
+        "🔥 Admin Panel",
+        reply_markup=ADMIN_MENU
+    )
+
+async def send_images(update, context, data):
+    chat_id = update.effective_chat.id
+    media = []
+
+    caption = (
+        f"📌 {data['title']}\n"
+        f"📅 Effective Period:\n"
+        f"{data['start']} - {data['end']}"
+    )
+
+    for i, img in enumerate(data["images"]):
+        path = os.path.join(BASE_DIR, img)
+        if os.path.exists(path):
+            if i == 0:
+                media.append(InputMediaPhoto(open(path, "rb"), caption=caption, parse_mode="Markdown"))
+            else:
+                media.append(InputMediaPhoto(open(path, "rb")))
+
+    if media:
+        await context.bot.send_media_group(chat_id=chat_id, media=media)
+    else:
+        await update.message.reply_text("❌ Gambar tidak dijumpai.")
+
+async def show_main_menu(update, context):
+    await update.message.reply_text(
+        "Main Menu:",
+        reply_markup=get_main_menu(update.effective_user.id)
+    )
 
 # ================= MESSAGE HANDLER =================
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message(update, context):
     msg = update.message.text.strip() if update.message.text else ""
     user_id = update.effective_user.id
 
-    # ===== BACK =====
-    if msg == "⬅ Back":
-        context.user_data.clear()
-        await start(update, context)
+    # BACK (WAJIB PALING ATAS)
+    if msg.endswith("Back"):
+        await show_main_menu(update, context)
         return
 
-    # ===== ADMIN =====
+    # ADMIN
     if msg == "👑 Admin":
         if user_id != ADMIN_ID:
             await update.message.reply_text("❌ No access")
             return
-        await update.message.reply_text("Admin Menu:", reply_markup=get_admin_menu())
+        await show_admin_menu(update, context)
         return
 
-    # ===== UPDATE CATEGORY =====
+    # ==============================
+    # BUTTON TRIGGER
+    # ==============================
+
     if msg == "UPDATE OR":
         context.user_data["category"] = "OR"
         context.user_data["mode"] = "select_number"
@@ -140,36 +195,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("GE nombor berapa?")
         return
 
+    # ADMIN STATE MACHINE
+
     mode = context.user_data.get("mode")
 
-    # ===== SELECT NUMBER =====
+    # ---------- STEP 1: SELECT NUMBER ----------
     if mode == "select_number":
-        context.user_data["item"] = msg
-        context.user_data["mode"] = "image_a"
-        await update.message.reply_text("Upload Gambar A")
+        if msg and msg.isdigit():
+            context.user_data["item"] = msg
+            context.user_data["mode"] = "image_a"
+            await update.message.reply_text("Upload Gambar A")
+        else:
+            await update.message.reply_text("Sila masukkan nombor yang sah.")
         return
 
-    # ===== IMAGE A =====
+
+    # ---------- STEP 2: IMAGE A ----------
     if mode == "image_a":
         if update.message.photo:
             photo = update.message.photo[-1]
             file = await photo.get_file()
 
-            folder = context.user_data["category"]
+            folder = context.user_data["category"]  # OR / GE
             item = context.user_data["item"]
 
-            os.makedirs(os.path.join(BASE_DIR, folder), exist_ok=True)
-
-            path = os.path.join(BASE_DIR, folder, f"{item}_a.jpg")
+            path = f"data/{folder}/{item}_a.jpg"
             await file.download_to_drive(path)
 
             context.user_data["mode"] = "image_b"
             await update.message.reply_text("Upload Gambar B")
         else:
-            await update.message.reply_text("❌ Sila upload gambar.")
+            await update.message.reply_text("Sila upload gambar.")
         return
 
-    # ===== IMAGE B =====
+
+    # ---------- STEP 3: IMAGE B ----------
     if mode == "image_b":
         if update.message.photo:
             photo = update.message.photo[-1]
@@ -178,89 +238,147 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             folder = context.user_data["category"]
             item = context.user_data["item"]
 
-            path = os.path.join(BASE_DIR, folder, f"{item}_b.jpg")
+            path = f"data/{folder}/{item}_b.jpg"
             await file.download_to_drive(path)
 
             context.user_data["mode"] = "start_date"
             await update.message.reply_text("Masukkan tarikh START (YYYY-MM-DD)")
         else:
-            await update.message.reply_text("❌ Sila upload gambar.")
+            await update.message.reply_text("Sila upload gambar.")
         return
 
-    # ===== START DATE =====
+
+    # ---------- STEP 4: START DATE ----------
     if mode == "start_date":
-        context.user_data["start"] = msg
+        context.user_data["start_date"] = msg
         context.user_data["mode"] = "end_date"
         await update.message.reply_text("Masukkan tarikh END (YYYY-MM-DD)")
         return
 
-    # ===== END DATE =====
-    if mode == "end_date":
-        data = load_data()
 
-        category = context.user_data["category"]
+    # ---------- STEP 5: END DATE ----------
+    if mode == "end_date":
+        context.user_data["end_date"] = msg
+
+        # Save to your data structure
+        folder = context.user_data["category"]
         item = context.user_data["item"]
 
-        data[category][item] = {
-            "title": f"{category} {item}",
-            "images": [
-                f"{category}/{item}_a.jpg",
-                f"{category}/{item}_b.jpg"
-            ],
-            "start": context.user_data["start"],
-            "end": msg
-        }
+        # contoh simpan ke dict
+        data = load_data()
+
+        if item not in data[folder]:
+            data[folder][item] = {}
+
+        data[folder][item]["title"] = f"{folder} {item}"
+        data[folder][item]["images"] = [
+        f"{folder}/{item}_a.jpg",
+        f"{folder}/{item}_b.jpg"
+        ]
+        data[folder][item]["start"] = context.user_data["start_date"]
+        data[folder][item]["end"] = context.user_data["end_date"]
 
         save_data(data)
 
+        await update.message.reply_text("✅ Update berjaya!")
+
         context.user_data.clear()
-        await update.message.reply_text("✅ Update berjaya")
         return
 
-    # ===== VIEW OR =====
+    # MAIN MENU
+    if msg == "📁 OR":
+        await show_or_menu(update, context)
+        return
+
+    if msg == "📁 GE":
+        await show_ge_menu(update, context)
+        return
+
+    # 4 RM10 + PERAYAAN
+    if msg == "4 RM10_PERAYAAN":
+        image_path = "data/4 RM10_PERAYAAN.jpeg"
+
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption="4 RM10_PERAYAAN"
+                )
+            return
+        else:
+            await update.message.reply_text("❌ Gambar tidak dijumpai.")
+            return
+
+    # STANDEE
+    if msg == "STANDEE":
+            buttons = [[k] for k in STANDEE_DATA.keys()]
+            buttons.append(["⬅ Back"])
+            await update.message.reply_text(
+                "Pilih Standee:",
+                reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+            )
+            return
+    
+    if msg in STANDEE_DATA:
+        data = STANDEE_DATA[msg]
+
+        for img in data["images"]:
+            if os.path.exists(img):
+                with open(img, "rb") as photo:
+                    await update.message.reply_photo(
+                    photo=photo,
+                    caption=data["title"]
+                    )
+            else:
+                await update.message.reply_text("❌ Gambar tidak dijumpai.")
+            return
+
+    # OR ITEM
     if msg.startswith("OR "):
-        key = msg.split(" ", 1)[1]
-        await send_item(update, context, "OR", key)
+        parts = msg.split(" ", 1)
+        if len(parts) != 2:
+            await update.message.reply_text("❌ Format salah")
+            return
+
+        key = parts[1]
+        data = load_data()
+        if key in data["OR"]:
+            await send_images(update, context, data["OR"][key])
+        else:
+            await update.message.reply_text("❌ OR tidak wujud")
         return
 
-    # ===== VIEW GE =====
+    # GE ITEM
     if msg.startswith("GE "):
-        key = msg.split(" ", 1)[1]
-        await send_item(update, context, "GE", key)
-        return
+        parts = msg.split(" ", 1)
+        if len(parts) != 2:
+            await update.message.reply_text("❌ Format salah")
+            return
 
-    # ===== MAIN MENU =====
-    if msg == "📂 OR":
-        await update.message.reply_text("Taip: OR 1, OR 2 dan sebagainya")
-        return
+        key = parts[1]
+        data = load_data()
+        if key in data["GE"]:
+            await send_images(update, context, data["GE"][key])
 
-    if msg == "📂 GE":
-        await update.message.reply_text("Taip: GE 1, GE 2 dan sebagainya")
+        else:
+            await update.message.reply_text("❌ GE tidak wujud")
         return
 
     # ===== FALLBACK =====
-    await update.message.reply_text(
-        "Arahan tidak dikenali.",
-        reply_markup=get_main_menu(user_id)
+    if not context.user_data.get("mode"):
+        await update.message.reply_text(
+        "! Arahan tidak dikenali.\nSila pilih menu.",
+    reply_markup=get_main_menu(update.effective_user.id)
     )
-
+        return
 
 # ================= MAIN =================
-
 def main():
-    print("BOT STARTED", flush=True)
-
-    TOKEN = os.getenv("TOKEN")
-    if not TOKEN:
-        raise Exception("TOKEN NOT LOADED")
-
     app = ApplicationBuilder().token(TOKEN).build()
-
-    threading.Thread(target=keep_alive).start()
-
-    print("RUNNING POLLING", flush=True)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
+    print("🤖 Bot running...")
     app.run_polling()
-
 
 if __name__ == "__main__":
     main()
