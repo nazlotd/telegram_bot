@@ -375,9 +375,12 @@ async def handle_message(update, context):
 
         response = (
     "📅 DATE INFO\n\n"
-    f"⏳ 45 Days  → {date_45.strftime('%d/%m/%Y')}\n"
-    f"⏳ 60 Days  → {date_60.strftime('%d/%m/%Y')}\n"
-    f"⏳ 90 Days → {date_90.strftime('%d/%m/%Y')}"
+    "══════════════════════\n\n"
+    f"⏳ 45 Days  ➤  {date_45.strftime('%d/%m/%Y')}\n"
+    f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
+    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}"
+    "══════════════════════\n"
+    "🩸 TIME WAITS FOR NO ONE"
     )
 
         await update.message.reply_text(response, parse_mode="Markdown")
