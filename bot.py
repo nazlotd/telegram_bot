@@ -80,7 +80,7 @@ ADMIN_MENU = ReplyKeyboardMarkup(
 def get_main_menu(user_id):
     buttons = [
         ["📁 OR", "📁 GE"],
-        ["4 RM10_PERAYAAN", "STANDEE"]
+        ["4 RM10_PERAYAAN", "STANDEE"],
         ["DATE INFO"]
     ]
 
