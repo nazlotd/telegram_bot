@@ -374,11 +374,11 @@ async def handle_message(update, context):
         date_90 = today + timedelta(days=90)
 
         response = (
-    "📅 DATE INFO\n\n"
+    "📅 DATE INFO\n"
     "══════════════════════\n\n"
     f"⏳ 45 Days  ➤  {date_45.strftime('%d/%m/%Y')}\n"
     f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
-    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n"
+    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n\n"
     "══════════════════════\n"
     "🩸 TIME WAITS FOR NO ONE"
     )
