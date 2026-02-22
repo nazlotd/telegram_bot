@@ -33,29 +33,7 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-STANDEE_DATA = {
-    "1": {  
-        "images": ["data/STANDEE/test1.jpeg"],
-        "title": "TEST 1",
-    },
-    "2": {  
-        "images": ["data/STANDEE/test2.jpeg"],
-        "title": "TEST 2",
-    },
-    "3": {  
-        "images": ["data/STANDEE/test3.jpeg"],
-        "title": "TEST 3",
-    },
-    "4": {  
-        "images": ["data/STANDEE/test4.jpeg"],
-        "title": "TEST 4",
-    },
-    "5": {  
-        "images": ["data/STANDEE/test5.jpeg"],
-        "title": "TEST 5"
-    }
 
-}
 
 # ================= KEYBOARDS =================
 MAIN_MENU = ReplyKeyboardMarkup(
@@ -314,27 +292,34 @@ async def handle_message(update, context):
 
     # STANDEE
     if msg == "STANDEE":
-            buttons = [[k] for k in STANDEE_DATA.keys()]
-            buttons.append(["⬅ Back"])
-            await update.message.reply_text(
-                "Pilih Standee:",
-                reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
-            )
-            return
-    
-    if msg in STANDEE_DATA:
-        data = STANDEE_DATA[msg]
+        data = load_data()
+        standee_data = data.get("STANDEE", {})
+        buttons = [[k] for k in standee_data.keys()]
+        buttons.append(["← Back"])
 
-        for img in data["images"]:
-            if os.path.exists(img):
-                with open(img, "rb") as photo:
-                    await update.message.reply_photo(
+        await update.message.reply_text(
+            "Pilih Standee:",
+            reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    )
+        return
+
+
+    data = load_data()
+    standee_data = data.get("STANDEE", {})
+
+    if msg in standee_data:
+        item = standee_data[msg]
+
+    for img in item["images"]:
+        if os.path.exists(img):
+            with open(img, "rb") as photo:
+                await update.message.reply_photo(
                     photo=photo,
-                    caption=data["title"]
-                    )
-            else:
-                await update.message.reply_text("❌ Gambar tidak dijumpai.")
-            return
+                    caption=item["title"]
+                )
+        else:
+            await update.message.reply_text("❌ Gambar tidak dijumpai.")
+        return
 
     # OR ITEM
     if msg.startswith("OR "):
