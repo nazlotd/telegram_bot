@@ -378,7 +378,7 @@ async def handle_message(update, context):
     "══════════════════════\n\n"
     f"⏳ 45 Days  ➤  {date_45.strftime('%d/%m/%Y')}\n"
     f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
-    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}"
+    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n"
     "══════════════════════\n"
     "🩸 TIME WAITS FOR NO ONE"
     )
