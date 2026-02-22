@@ -367,7 +367,8 @@ async def handle_message(update, context):
         return
     if msg == "DATE INFO":
 
-        today = datetime.now()
+        now = datetime.now()
+        today = now
 
         date_45 = today + timedelta(days=45)
         date_60 = today + timedelta(days=60)
@@ -375,11 +376,12 @@ async def handle_message(update, context):
 
         response = (
     "📅 DATE INFO\n"
-    "══════════════════════\n\n"
+    "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
     f"⏳ 45 Days  ➤  {date_45.strftime('%d/%m/%Y')}\n"
     f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
     f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n\n"
-    "══════════════════════\n"
+    "━━━━━━━━━━━━━━━━━━━━━━━━\n"
+    f"🕒 Generated : {now.strftime('%d/%m/%Y %H:%M')}\n"
     "🩸 TIME WAITS FOR NO ONE"
     )
 
