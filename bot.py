@@ -374,13 +374,13 @@ async def handle_message(update, context):
         date_90 = today + timedelta(days=90)
 
         response = (
-            "📅 DATE INFO\n\n"
-            f"• 45 Days From Now = {date_45.strftime('%d/%m/%Y')}\n"
-            f"• 60 Days From Now = {date_60.strftime('%d/%m/%Y')}\n"
-            f"• 90 Days From Now = {date_90.strftime('%d/%m/%Y')}"
+    "📅 DATE INFO\n\n"
+    f"⏳ 45 Days  → {date_45.strftime('%d/%m/%Y')}\n"
+    f"⏳ 60 Days  → {date_60.strftime('%d/%m/%Y')}\n"
+    f"⏳ 90 Days → {date_90.strftime('%d/%m/%Y')}"
     )
 
-        await update.message.reply_text(response)
+        await update.message.reply_text(response, parse_mode="Markdown")
         return
 
     # ===== FALLBACK =====
