@@ -310,15 +310,15 @@ async def handle_message(update, context):
     if msg in standee_data:
         item = standee_data[msg]
 
-    for img in item["images"]:
-        if os.path.exists(img):
-            with open(img, "rb") as photo:
-                await update.message.reply_photo(
+        for img in item["images"]:
+            if os.path.exists(img):
+                with open(img, "rb") as photo:
+                    await update.message.reply_photo(
                     photo=photo,
                     caption=item["title"]
-                )
-        else:
-            await update.message.reply_text("❌ Gambar tidak dijumpai.")
+                    )
+            else:
+                await update.message.reply_text("❌ Gambar tidak dijumpai.")
         return
 
     # OR ITEM
