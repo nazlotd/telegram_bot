@@ -2,6 +2,7 @@ import os
 import json
 TOKEN = os.getenv("TOKEN")
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from telegram import Update, ReplyKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
@@ -367,7 +368,7 @@ async def handle_message(update, context):
         return
     if msg == "DATE INFO":
 
-        now = datetime.now()
+        now = datetime.now(ZoneInfo("Asia/Kuala_Lumpur"))
         today = now
 
         date_45 = today + timedelta(days=45)
@@ -381,7 +382,7 @@ async def handle_message(update, context):
     f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
     f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    f"🕒 Generated : {now.strftime('%d/%m/%Y %H:%M')}\n"
+    f"🕒 Generated : {now.strftime('%d/%m/%Y  %H:%M')}\n"
     "🩸 TIME WAITS FOR NO ONE"
     )
 
