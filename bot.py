@@ -1,6 +1,7 @@
 import os
 import json
 TOKEN = os.getenv("TOKEN")
+from datetime import datetime, timedelta
 
 from telegram import Update, ReplyKeyboardMarkup, InputMediaPhoto
 from telegram.ext import (
@@ -80,6 +81,7 @@ def get_main_menu(user_id):
     buttons = [
         ["📁 OR", "📁 GE"],
         ["4 RM10_PERAYAAN", "STANDEE"]
+        ["DATE INFO"]
     ]
 
     if user_id == ADMIN_ID:
@@ -362,6 +364,23 @@ async def handle_message(update, context):
 
         else:
             await update.message.reply_text("❌ GE tidak wujud")
+        return
+    if msg == "DATE INFO":
+
+        today = datetime.now()
+
+        date_45 = today + timedelta(days=45)
+        date_60 = today + timedelta(days=60)
+        date_90 = today + timedelta(days=90)
+
+        response = (
+            "📅 DATE INFO\n\n"
+            f"• 45 Days From Now = {date_45.strftime('%d/%m/%Y')}\n"
+            f"• 60 Days From Now = {date_60.strftime('%d/%m/%Y')}\n"
+            f"• 90 Days From Now = {date_90.strftime('%d/%m/%Y')}"
+    )
+
+        await update.message.reply_text(response)
         return
 
     # ===== FALLBACK =====
