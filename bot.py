@@ -199,22 +199,20 @@ async def handle_message(update, context):
         if update.message.photo:
             file_id = update.message.photo[-1].file_id
 
-            category = context.user_data["category"]
+            folder = context.user_data["category"]  # OR / GE / STANDEE
             item = context.user_data["item"]
 
             data = load_data()
 
-            if item not in data[category]:
-                data[category][item] = {}
+            if item not in data[folder]:
+                data[folder][item] = {}
 
-            data[category][item]["images"] = [file_id]
+            data[folder][item]["images"] = [file_id]
 
             save_data(data)
 
             context.user_data["mode"] = "image_b"
             await update.message.reply_text("Upload Gambar B")
-        else:
-            await update.message.reply_text("Sila upload gambar.")
         return
 
 
@@ -223,19 +221,17 @@ async def handle_message(update, context):
         if update.message.photo:
             file_id = update.message.photo[-1].file_id
 
-            category = context.user_data["category"]
+            folder = context.user_data["category"]
             item = context.user_data["item"]
 
             data = load_data()
 
-            data[category][item]["images"].append(file_id)
+            data[folder][item]["images"].append(file_id)
 
             save_data(data)
 
-            context.user_data["mode"] = "start_date"
-            await update.message.reply_text("Masukkan tarikh start (DD/MM/YYYY)")
-        else:
-            await update.message.reply_text("Sila upload gambar.")
+            context.user_data["mode"] = "date"
+            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY)")
         return
 
 
