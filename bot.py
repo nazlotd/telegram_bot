@@ -225,21 +225,25 @@ async def handle_message(update, context):
         if update.message.photo:
             file_id = update.message.photo[-1].file_id
 
-            folder = context.user_data["category"]  # OR / GE / STANDEE
+            folder = context.user_data["category"]
             item = context.user_data["item"]
 
             data = load_data()
 
+            if folder not in data:
+                data[folder] = {}
+
             if item not in data[folder]:
                 data[folder][item] = {}
 
+            # 4 RM10 hanya 1 gambar
             data[folder][item]["images"] = [file_id]
 
             save_data(data)
 
-            context.user_data["mode"] = "image_b"
-            await update.message.reply_text("Upload Gambar B")
-        return
+            context.user_data["mode"] = "start_date"
+            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY)")
+            return
 
 
     # ---------- STEP 3: IMAGE B ----------
