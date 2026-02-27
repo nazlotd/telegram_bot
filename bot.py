@@ -277,18 +277,17 @@ async def handle_message(update, context):
 
     # 4 RM10 + PERAYAAN
     if msg == "4 RM10_PERAYAAN":
-        image_path = "data/4 RM10_PERAYAAN.jpeg"
+        image_path = os.path.join(DATA_DIR, "4 RM10_PERAYAAN.jpeg")
 
         if os.path.exists(image_path):
             with open(image_path, "rb") as photo:
                 await update.message.reply_photo(
                     photo=photo,
-                    caption="4 RM10_PERAYAAN"
+                    caption="📌 4 RM10_PERAYAAN"
                 )
-            return
         else:
             await update.message.reply_text("❌ Gambar tidak dijumpai.")
-            return
+        return
 
     # STANDEE
     if msg == "STANDEE":
