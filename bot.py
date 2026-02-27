@@ -272,12 +272,20 @@ async def handle_message(update, context):
             data[folder] = {}
 
         if folder == "4 RM10_PERAYAAN":
-            data[folder]["4RM10"] = {
+
+            file_id = context.user_data.get("file_id")
+
+            if not file_id:
+                await update.message.reply_text("❌ Gambar belum dihantar.")
+                return
+
+            data[folder]["1"] = {
                 "title": "4 RM10_PERAYAAN",
-                "images": [context.user_data["file_id"]],
-                "start": context.user_data["start_date"],
-                "end": context.user_data["end_date"]
-            }
+                "images": [file_id],
+                "start": context.user_data.get("start_date"),
+                "end": context.user_data.get("end_date")
+        }
+
         else:
             if item not in data[folder]:
                 data[folder][item] = {}
