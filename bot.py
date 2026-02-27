@@ -230,7 +230,7 @@ async def handle_message(update, context):
 
             save_data(data)
 
-            context.user_data["mode"] = "date"
+            context.user_data["mode"] = "start_date"
             await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY)")
         return
 
