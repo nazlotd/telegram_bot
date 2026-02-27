@@ -130,7 +130,7 @@ async def send_images(update, context, data):
                 InputMediaPhoto(
                     media=file_id,
                     caption=caption,
-                    parse_mode="Markdown"
+                    parse_mode=None
                 )
             )
         else:
