@@ -188,7 +188,7 @@ async def handle_message(update, context):
         return
     
     if msg == "UPDATE 4 RM10":
-        context.user_data["category"] = "PROMO"
+        context.user_data["category"] = "4 RM10"
         context.user_data["item"] = "4RM10"
         context.user_data["mode"] = "image_a"
         await update.message.reply_text("Upload Gambar Baru")
@@ -271,7 +271,7 @@ async def handle_message(update, context):
         if folder not in data:
             data[folder] = {}
 
-        if folder == "PROMO":
+        if folder == "4 RM10_PERAYAAN":
             data[folder]["4RM10"] = {
                 "title": "4 RM10_PERAYAAN",
                 "images": [context.user_data["file_id"]],
