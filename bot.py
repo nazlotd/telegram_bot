@@ -16,12 +16,9 @@ from telegram.ext import (
 # ================= CONFIG =================
 ADMIN_ID = 817761548  # 👈 tukar ke Telegram ID admin
 
-BASE_DIR = "data"
-
-DATA_FILE = os.path.join(BASE_DIR, "data.json")
-
-if not os.path.exists(BASE_DIR):
-    os.makedirs(BASE_DIR)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_FILE = os.path.join(DATA_DIR, "data.json")
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -30,6 +27,9 @@ def load_data():
         return json.load(f)
 
 def save_data(data):
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
@@ -118,23 +118,26 @@ async def send_images(update, context, data):
     media = []
 
     caption = (
-        f"📌 {data['title']}\n"
-        f"📅 Effective Period:\n"
-        f"{data['start']} - {data['end']}"
+        f"📌 {data.get('title','')}\n\n"
+        f"📅 {data.get('start','')} - {data.get('end','')}"
     )
 
-    for i, img in enumerate(data["images"]):
-        path = os.path.join(BASE_DIR, img)
-        if os.path.exists(path):
-            if i == 0:
-                media.append(InputMediaPhoto(open(path, "rb"), caption=caption, parse_mode="Markdown"))
-            else:
-                media.append(InputMediaPhoto(open(path, "rb")))
+    for i, file_id in enumerate(data["images"]):
+        if i == 0:
+            media.append(
+                InputMediaPhoto(
+                    media=file_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+            )
+        else:
+            media.append(InputMediaPhoto(media=file_id))
 
     if media:
         await context.bot.send_media_group(chat_id=chat_id, media=media)
     else:
-        await update.message.reply_text("❌ Gambar tidak dijumpai.")
+        await update.message.reply_text("❌ Tiada gambar.")
 
 async def show_main_menu(update, context):
     await update.message.reply_text(
@@ -194,14 +197,19 @@ async def handle_message(update, context):
     # ---------- STEP 2: IMAGE A ----------
     if mode == "image_a":
         if update.message.photo:
-            photo = update.message.photo[-1]
-            file = await photo.get_file()
+            file_id = update.message.photo[-1].file_id
 
-            folder = context.user_data["category"]  # OR / GE
+            category = context.user_data["category"]
             item = context.user_data["item"]
 
-            path = f"data/{folder}/{item}_a.jpg"
-            await file.download_to_drive(path)
+            data = load_data()
+
+            if item not in data[category]:
+                data[category][item] = {}
+
+            data[category][item]["images"] = [file_id]
+
+            save_data(data)
 
             context.user_data["mode"] = "image_b"
             await update.message.reply_text("Upload Gambar B")
@@ -213,17 +221,19 @@ async def handle_message(update, context):
     # ---------- STEP 3: IMAGE B ----------
     if mode == "image_b":
         if update.message.photo:
-            photo = update.message.photo[-1]
-            file = await photo.get_file()
+            file_id = update.message.photo[-1].file_id
 
-            folder = context.user_data["category"]
+            category = context.user_data["category"]
             item = context.user_data["item"]
 
-            path = f"data/{folder}/{item}_b.jpg"
-            await file.download_to_drive(path)
+            data = load_data()
+
+            data[category][item]["images"].append(file_id)
+
+            save_data(data)
 
             context.user_data["mode"] = "start_date"
-            await update.message.reply_text("Masukkan tarikh START (YYYY-MM-DD)")
+            await update.message.reply_text("Masukkan tarikh start (DD/MM/YYYY)")
         else:
             await update.message.reply_text("Sila upload gambar.")
         return
