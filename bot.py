@@ -22,7 +22,7 @@ DATA_FILE = os.path.join(DATA_DIR, "data.json")
 
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {"OR": {}, "GE": {}, "STANDEE": {}}
+        return {"OR": {}, "GE": {}, "STANDEE": {}, "4 RM10_PERAYAAN": {}}
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
@@ -271,28 +271,22 @@ async def handle_message(update, context):
         if folder not in data:
             data[folder] = {}
 
-        if folder == "4 RM10_PERAYAAN":
+    if folder == "4 RM10_PERAYAAN":
 
-            file_id = context.user_data.get("file_id")
+        if item not in data[folder]:
+            data[folder][item] = {}
 
-            if not file_id:
-                await update.message.reply_text("❌ Gambar belum dihantar.")
-                return
+        data[folder][item]["title"] = "4 RM10_PERAYAAN"
+        data[folder][item]["start"] = context.user_data["start_date"]
+        data[folder][item]["end"] = context.user_data["end_date"]
 
-            data[folder]["1"] = {
-                "title": "4 RM10_PERAYAAN",
-                "images": [file_id],
-                "start": context.user_data.get("start_date"),
-                "end": context.user_data.get("end_date")
-        }
-
-        else:
-            if item not in data[folder]:
+    else:
+        if item not in data[folder]:
                 data[folder][item] = {}
 
-            data[folder][item]["title"] = f"{folder} {item}"
-            data[folder][item]["start"] = context.user_data["start_date"]
-            data[folder][item]["end"] = context.user_data["end_date"]
+        data[folder][item]["title"] = f"{folder} {item}"
+        data[folder][item]["start"] = context.user_data["start_date"]
+        data[folder][item]["end"] = context.user_data["end_date"]
 
         save_data(data)
 
@@ -341,15 +335,7 @@ async def handle_message(update, context):
     if msg in standee_data:
         item = standee_data[msg]
 
-        for img in item["images"]:
-            if os.path.exists(img):
-                with open(img, "rb") as photo:
-                    await update.message.reply_photo(
-                    photo=photo,
-                    caption=item["title"]
-                    )
-            else:
-                await update.message.reply_text("❌ Gambar tidak dijumpai.")
+        await send_images(update, context, item)
         return
 
     # OR ITEM
