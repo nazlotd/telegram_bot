@@ -49,6 +49,7 @@ BACK_MENU = ReplyKeyboardMarkup(
 ADMIN_MENU = ReplyKeyboardMarkup(
     [
         ["UPDATE OR", "UPDATE GE"],
+        ["UPDATE 4 RM10", "UPDATE STANDEE"]
         ["⬅ Back"]
     ],
     resize_keyboard=True
@@ -179,6 +180,19 @@ async def handle_message(update, context):
         context.user_data["mode"] = "select_number"
         await update.message.reply_text("GE nombor berapa?")
         return
+    
+    if msg == "UPDATE STANDEE":
+        context.user_data["category"] = "STANDEE"
+        context.user_data["mode"] = "select_number"
+        await update.message.reply_text("STANDEE nombor berapa?")
+        return
+    
+    if msg == "UPDATE 4 RM10":
+        context.user_data["category"] = "PROMO"
+        context.user_data["item"] = "4RM10"
+        context.user_data["mode"] = "image_a"
+        await update.message.reply_text("Upload Gambar Baru")
+        return
 
     # ADMIN STATE MACHINE
 
@@ -253,12 +267,24 @@ async def handle_message(update, context):
 
         data = load_data()
 
-        if item not in data[folder]:
-            data[folder][item] = {}
+    # pastikan category wujud
+        if folder not in data:
+            data[folder] = {}
 
-        data[folder][item]["title"] = f"{folder} {item}"
-        data[folder][item]["start"] = context.user_data["start_date"]
-        data[folder][item]["end"] = context.user_data["end_date"]
+        if folder == "PROMO":
+            data[folder]["4RM10"] = {
+                "title": "4 RM10_PERAYAAN",
+                "images": [context.user_data["file_id"]],
+                "start": context.user_data["start_date"],
+                "end": context.user_data["end_date"]
+            }
+        else:
+            if item not in data[folder]:
+                data[folder][item] = {}
+
+            data[folder][item]["title"] = f"{folder} {item}"
+            data[folder][item]["start"] = context.user_data["start_date"]
+            data[folder][item]["end"] = context.user_data["end_date"]
 
         save_data(data)
 
@@ -277,16 +303,14 @@ async def handle_message(update, context):
 
     # 4 RM10 + PERAYAAN
     if msg == "4 RM10_PERAYAAN":
-        image_path = os.path.join(DATA_DIR, "4 RM10_PERAYAAN.jpeg")
+        data = load_data()
 
-        if os.path.exists(image_path):
-            with open(image_path, "rb") as photo:
-                await update.message.reply_photo(
-                    photo=photo,
-                    caption="📌 4 RM10_PERAYAAN"
-                )
+        promo_data = data.get("4 RM10_PERAYAAN", {})
+
+        if "1" in promo_data:
+            await send_images(update, context, promo_data["1"])
         else:
-            await update.message.reply_text("❌ Gambar tidak dijumpai.")
+            await update.message.reply_text("❌ Promo belum diset.")
         return
 
     # STANDEE
