@@ -124,22 +124,33 @@ async def send_images(update, context, data):
         f"{data.get('start','')} - {data.get('end','')}"
     )
 
-    for i, file_id in enumerate(data["images"]):
+    images = data.get("images", [])
+
+    if not images:
+        await update.message.reply_text("❌ Tiada gambar.")
+        return
+
+    # Kalau hanya 1 gambar
+    if len(images) == 1:
+        await update.message.reply_photo(
+            photo=images[0],
+            caption=caption
+        )
+        return
+
+    # Kalau lebih 1 gambar
+    for i, file_id in enumerate(images):
         if i == 0:
             media.append(
                 InputMediaPhoto(
                     media=file_id,
-                    caption=caption,
-                    parse_mode=None
+                    caption=caption
                 )
             )
         else:
             media.append(InputMediaPhoto(media=file_id))
 
-    if media:
-        await context.bot.send_media_group(chat_id=chat_id, media=media)
-    else:
-        await update.message.reply_text("❌ Tiada gambar.")
+    await context.bot.send_media_group(chat_id=chat_id, media=media)
 
 async def show_main_menu(update, context):
     await update.message.reply_text(
