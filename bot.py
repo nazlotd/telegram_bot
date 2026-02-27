@@ -119,7 +119,8 @@ async def send_images(update, context, data):
 
     caption = (
         f"📌 {data.get('title','')}\n\n"
-        f"📅 {data.get('start','')} - {data.get('end','')}"
+        f"📅 Effective Date\n"
+        f"{data.get('start','')} - {data.get('end','')}"
     )
 
     for i, file_id in enumerate(data["images"]):
