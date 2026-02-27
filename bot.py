@@ -49,7 +49,7 @@ BACK_MENU = ReplyKeyboardMarkup(
 ADMIN_MENU = ReplyKeyboardMarkup(
     [
         ["UPDATE OR", "UPDATE GE"],
-        ["UPDATE 4 RM10", "UPDATE STANDEE"]
+        ["UPDATE 4 RM10", "UPDATE STANDEE"],
         ["⬅ Back"]
     ],
     resize_keyboard=True
