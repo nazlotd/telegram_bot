@@ -247,28 +247,21 @@ async def handle_message(update, context):
     if mode == "end_date":
         context.user_data["end_date"] = msg
 
-        # Save to your data structure
         folder = context.user_data["category"]
         item = context.user_data["item"]
 
-        # contoh simpan ke dict
         data = load_data()
 
         if item not in data[folder]:
             data[folder][item] = {}
 
         data[folder][item]["title"] = f"{folder} {item}"
-        data[folder][item]["images"] = [
-        f"{folder}/{item}_a.jpg",
-        f"{folder}/{item}_b.jpg"
-        ]
         data[folder][item]["start"] = context.user_data["start_date"]
         data[folder][item]["end"] = context.user_data["end_date"]
 
         save_data(data)
 
         await update.message.reply_text("✅ Update berjaya!")
-
         context.user_data.clear()
         return
 
