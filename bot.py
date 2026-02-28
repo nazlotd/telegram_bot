@@ -200,8 +200,8 @@ async def handle_message(update, context):
     
     if msg == "UPDATE 4 RM10":
         context.user_data["category"] = "4 RM10_PERAYAAN"
-        context.user_data["item"] = "4RM10"
-        context.user_data["mode"] = "image_a"
+        context.user_data["item"] = "1"
+        context.user_data["mode"] = "image_single"
         await update.message.reply_text("Upload Gambar Baru")
         return
 
@@ -302,6 +302,9 @@ async def handle_message(update, context):
             data[folder][item]["title"] = f"{folder} {item}"
             data[folder][item]["start"] = context.user_data["start_date"]
             data[folder][item]["end"] = context.user_data["end_date"]
+        
+    if mode == "image_single":
+    # simpan 1 gambar sahaja
 
         save_data(data)
 
