@@ -162,6 +162,7 @@ async def show_main_menu(update, context):
 async def handle_message(update, context):
     msg = update.message.text.strip() if update.message.text else ""
     user_id = update.effective_user.id
+    mode = context.user_data.get("mode")
 
     # BACK (WAJIB PALING ATAS)
     if msg.endswith("Back"):
