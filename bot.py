@@ -280,31 +280,21 @@ async def handle_message(update, context):
         folder = context.user_data["category"]
         item = context.user_data["item"]
 
-        data = load_data()
+        data = load_data()   # WAJIB letak sini
 
-    # pastikan category wujud
         if folder not in data:
             data[folder] = {}
 
+        if item not in data[folder]:
+            data[folder][item] = {}
+
         if folder == "4 RM10_PERAYAAN":
-
-            if item not in data[folder]:
-                data[folder][item] = {}
-
             data[folder][item]["title"] = "4 RM10_PERAYAAN"
-            data[folder][item]["start"] = context.user_data["start_date"]
-            data[folder][item]["end"] = context.user_data["end_date"]
-
         else:
-            if item not in data[folder]:
-                data[folder][item] = {}
-
             data[folder][item]["title"] = f"{folder} {item}"
-            data[folder][item]["start"] = context.user_data["start_date"]
-            data[folder][item]["end"] = context.user_data["end_date"]
-        
-    if mode == "image_single":
-    # simpan 1 gambar sahaja
+
+        data[folder][item]["start"] = context.user_data["start_date"]
+        data[folder][item]["end"] = context.user_data["end_date"]
 
         save_data(data)
 
