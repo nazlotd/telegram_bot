@@ -315,11 +315,16 @@ async def handle_message(update, context):
     # 4 RM10 + PERAYAAN
     if msg == "4 RM10_PERAYAAN":
         data = load_data()
-        promo_data = data.get("4 RM10_PERAYAAN", {})
 
-        if promo_data:
-            first_key = next(iter(promo_data))
-            await send_images(update, context, promo_data[first_key])
+        if (
+            "4 RM10_PERAYAAN" in data and
+            "1" in data["4 RM10_PERAYAAN"]
+        ):
+            await send_images(
+                update,
+                context,
+                data["4 RM10_PERAYAAN"]["1"]
+            )
         else:
             await update.message.reply_text("❌ Promo belum diset.")
         return
