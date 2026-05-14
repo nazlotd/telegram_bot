@@ -203,7 +203,7 @@ async def handle_message(update, context):
     if msg == "UPDATE 4 RM10":
         context.user_data["category"] = "4 RM10_PERAYAAN"
         context.user_data["item"] = "1"
-        context.user_data["mode"] = "image_single"
+        context.user_data["mode"] = "image_a"
         await update.message.reply_text("Upload Gambar Baru")
         return
 
