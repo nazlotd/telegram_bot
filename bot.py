@@ -224,27 +224,40 @@ async def handle_message(update, context):
     # ---------- STEP 2: IMAGE A ----------
     if mode == "image_a":
         if update.message.photo:
+
             file_id = update.message.photo[-1].file_id
 
-            folder = context.user_data["category"]
-            item = context.user_data["item"]
+        folder = context.user_data["category"]
+        item = context.user_data["item"]
 
-            data = load_data()
+        data = load_data()
 
-            if folder not in data:
-                data[folder] = {}
+        if folder not in data:
+            data[folder] = {}
 
-            if item not in data[folder]:
-                data[folder][item] = {}
+        if item not in data[folder]:
+            data[folder][item] = {}
 
-            # 4 RM10 hanya 1 gambar
-            data[folder][item]["images"] = [file_id]
+        # simpan gambar pertama
+        data[folder][item]["images"] = [file_id]
 
-            save_data(data)
+        save_data(data)
 
+        # kalau 4 RM10 → terus date
+        if folder == "4 RM10_PERAYAAN":
             context.user_data["mode"] = "start_date"
-            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY)")
-            return
+            await update.message.reply_text(
+                "Masukkan tarikh mula (DD/MM/YYYY)"
+            )
+
+        else:
+            # OR / GE / STANDEE → minta gambar kedua
+            context.user_data["mode"] = "image_b"
+            await update.message.reply_text(
+                "Upload Gambar B"
+            )
+
+        return
 
 
     # ---------- STEP 3: IMAGE B ----------
