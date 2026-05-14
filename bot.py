@@ -125,6 +125,7 @@ async def send_images(update, context, data):
     )
 
     images = data.get("images", [])
+    print("DEBUG IMAGE:", images)
 
     if not images:
         await update.message.reply_text("❌ Tiada gambar.")
