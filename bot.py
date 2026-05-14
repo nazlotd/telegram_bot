@@ -119,9 +119,12 @@ async def send_images(update, context, data):
     media = []
 
     caption = (
-        f"📌 {data.get('title','')}\n\n"
-        f"📅 Effective Date\n"
-        f"{data.get('start','')} - {data.get('end','')}"
+    f"╭━━━〔 📢 PROMOTION 〕━━━╮\n\n"
+    f"🏷️ {data.get('title','')}\n\n"
+    f"📅 Effective Date\n"
+    f"└➤ {data.get('start','')}  ➜  {data.get('end','')}\n\n"
+    f"━━━━━━━━━━━━━━━━━━\n"
+    f"🛒 Please refer to naz for latest update."
     )
 
     images = data.get("images", [])
@@ -135,7 +138,8 @@ async def send_images(update, context, data):
     if len(images) == 1:
         await update.message.reply_photo(
             photo=images[0],
-            caption=caption
+            caption=caption,
+            parse_mode="Markdown"
         )
         return
 
@@ -145,7 +149,8 @@ async def send_images(update, context, data):
             media.append(
                 InputMediaPhoto(
                     media=file_id,
-                    caption=caption
+                    caption=caption,
+                    parse_mode="Markdown"
                 )
             )
         else:
