@@ -124,7 +124,7 @@ async def send_images(update, context, data):
     f"📅 Effective Date\n"
     f"└➤ {data.get('start','')}  ➜  {data.get('end','')}\n\n"
     f"━━━━━━━━━━━━━━━━━━\n"
-    f"🛒 Please refer to naz for latest update."
+    f"🛒 Please refer to nazs for latest update."
     )
 
     images = data.get("images", [])
