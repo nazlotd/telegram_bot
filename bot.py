@@ -145,6 +145,8 @@ def get_admin_menu():
         [
             ["UPDATE OR", "UPDATE GE"],
             ["UPDATE 4 RM10", "UPDATE STANDEE"],
+            ["ADMIN STATS", "USER LIST"],
+            ["PROMO LIST"],
             [BUTTON_BACK],
         ],
         resize_keyboard=True,
@@ -173,6 +175,30 @@ def is_valid_date(message):
     except ValueError:
         return False
     return True
+
+
+def parse_seen_time(value):
+    try:
+        return datetime.strptime(value, "%d/%m/%Y %H:%M:%S")
+    except (TypeError, ValueError):
+        return datetime.min
+
+
+def get_user_display_name(user):
+    name_parts = [
+        user.get("first_name") or "",
+        user.get("last_name") or "",
+    ]
+    full_name = " ".join(part for part in name_parts if part).strip()
+    username = user.get("username")
+
+    if username:
+        return f"@{username}"
+
+    if full_name:
+        return full_name
+
+    return str(user.get("id", "Unknown"))
 
 
 def build_caption(item):
@@ -218,6 +244,20 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_user(update)
     await show_main_menu(update, context)
+
+
+async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    save_user(update)
+
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("No access.")
+        return
+
+    context.user_data.clear()
+    await show_admin_menu(update, context)
 
 
 async def show_or_menu(update, context):
@@ -302,6 +342,93 @@ async def send_images(update, context, item):
         await update.message.reply_text(
             f"Gagal hantar gambar. Sila update gambar semula.\nError: {error}"
         )
+
+
+async def show_admin_stats(update):
+    data = load_data()
+    users = load_users()
+    category_lines = []
+
+    for category in CATEGORIES:
+        items = data.get(category, {})
+        total_items = len(items)
+        total_images = sum(
+            len(item.get("images", []))
+            for item in items.values()
+            if isinstance(item, dict) and isinstance(item.get("images", []), list)
+        )
+        category_lines.append(f"{category}: {total_items} item, {total_images} gambar")
+
+    response = (
+        "ADMIN STATS\n"
+        "------------------\n"
+        f"Total user: {len(users)}\n\n"
+        "Promo:\n"
+        + "\n".join(category_lines)
+    )
+
+    await update.message.reply_text(response, reply_markup=get_admin_menu())
+
+
+async def show_user_list(update, limit=15):
+    users = load_users()
+
+    if not users:
+        await update.message.reply_text(
+            "Belum ada user disimpan.",
+            reply_markup=get_admin_menu(),
+        )
+        return
+
+    sorted_users = sorted(
+        users.values(),
+        key=lambda user: parse_seen_time(user.get("last_seen")),
+        reverse=True,
+    )
+
+    lines = [f"USER LIST ({len(users)} total)", "------------------"]
+    for index, user in enumerate(sorted_users[:limit], start=1):
+        lines.append(
+            f"{index}. {get_user_display_name(user)} | ID: {user.get('id')} | "
+            f"Msg: {user.get('message_count', 0)} | Last: {user.get('last_seen', '-')}"
+        )
+
+    if len(users) > limit:
+        lines.append(f"\nPaparan {limit} user terbaru sahaja.")
+
+    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_menu())
+
+
+async def show_promo_list(update):
+    data = load_data()
+    lines = ["PROMO LIST", "------------------"]
+
+    for category in CATEGORIES:
+        items = data.get(category, {})
+        if not items:
+            lines.append(f"{category}: kosong")
+            continue
+
+        item_keys = ", ".join(sorted(items.keys(), key=str))
+        lines.append(f"{category}: {item_keys}")
+
+    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_menu())
+
+
+async def handle_admin_panel_action(update, message):
+    if message == "ADMIN STATS":
+        await show_admin_stats(update)
+        return True
+
+    if message == "USER LIST":
+        await show_user_list(update)
+        return True
+
+    if message == "PROMO LIST":
+        await show_promo_list(update)
+        return True
+
+    return False
 
 
 async def ask_for_update_number(update, context, category):
@@ -481,6 +608,9 @@ async def handle_message(update, context):
         await show_admin_menu(update, context)
         return
 
+    if user_id == ADMIN_ID and await handle_admin_panel_action(update, message):
+        return
+
     if user_id == ADMIN_ID and await handle_update_trigger(update, context, message):
         return
 
@@ -550,6 +680,7 @@ def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
+    app.add_handler(CommandHandler("admin", admin))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
 
     print("Bot running...")
