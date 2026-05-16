@@ -1,444 +1,560 @@
-import os
 import json
-TOKEN = os.getenv("TOKEN")
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+import os
+from datetime import datetime, timedelta, timezone
+from json import JSONDecodeError
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from telegram import Update, ReplyKeyboardMarkup, InputMediaPhoto
+from telegram import InputMediaPhoto, ReplyKeyboardMarkup, Update
+from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    MessageHandler,
     ContextTypes,
-    filters
+    MessageHandler,
+    filters,
+)
+from config import (
+    ADMIN_ID,
+    BUTTON_ADMIN,
+    BUTTON_BACK,
+    BUTTON_DATE_INFO,
+    BUTTON_GE,
+    BUTTON_OR,
+    CATEGORIES,
+    CATEGORY_4_RM10,
+    CATEGORY_GE,
+    CATEGORY_OR,
+    CATEGORY_STANDEE,
+    DATA_DIR,
+    DATA_FILE,
+    INTRO_FILE,
+    TOKEN,
+    USERS_FILE,
 )
 
-# ================= CONFIG =================
-ADMIN_ID = 817761548  # 👈 tukar ke Telegram ID admin
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-DATA_FILE = os.path.join(DATA_DIR, "data.json")
+def default_data():
+    return {category: {} for category in CATEGORIES}
+
 
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {"OR": {}, "GE": {}, "STANDEE": {}, "4 RM10_PERAYAAN": {}}
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+        return default_data()
+
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+    except (JSONDecodeError, OSError):
+        return default_data()
+
+    if not isinstance(data, dict):
+        return default_data()
+
+    for category in CATEGORIES:
+        if not isinstance(data.get(category), dict):
+            data[category] = {}
+
+    return data
+
 
 def save_data(data):
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+    os.makedirs(DATA_DIR, exist_ok=True)
 
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
+    with open(DATA_FILE, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
 
 
-# ================= KEYBOARDS =================
-MAIN_MENU = ReplyKeyboardMarkup(
-    [["OR", "GE"], ["👑 Admin"]],
-    resize_keyboard=True
-)
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
 
-BACK_MENU = ReplyKeyboardMarkup(
-    [["⬅️ Back"]],
-    resize_keyboard=True
-)
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as file:
+            users = json.load(file)
+    except (JSONDecodeError, OSError):
+        return {}
 
-ADMIN_MENU = ReplyKeyboardMarkup(
-    [
-        ["UPDATE OR", "UPDATE GE"],
-        ["UPDATE 4 RM10", "UPDATE STANDEE"],
-        ["⬅ Back"]
-    ],
-    resize_keyboard=True
-)
+    if not isinstance(users, dict):
+        return {}
 
-# ================= FUNCTIONS =================
+    return users
+
+
+def save_users(users):
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+    with open(USERS_FILE, "w", encoding="utf-8") as file:
+        json.dump(users, file, indent=4, ensure_ascii=False)
+
+
+def malaysia_now():
+    try:
+        return datetime.now(ZoneInfo("Asia/Kuala_Lumpur"))
+    except ZoneInfoNotFoundError:
+        return datetime.now(timezone(timedelta(hours=8)))
+
+
+def save_user(update):
+    user = update.effective_user
+    chat = update.effective_chat
+
+    if not user:
+        return
+
+    users = load_users()
+    user_id = str(user.id)
+    now = malaysia_now().strftime("%d/%m/%Y %H:%M:%S")
+    old_user = users.get(user_id, {})
+
+    users[user_id] = {
+        "id": user.id,
+        "chat_id": chat.id if chat else None,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": user.username,
+        "language_code": user.language_code,
+        "is_bot": user.is_bot,
+        "is_admin": user.id == ADMIN_ID,
+        "first_seen": old_user.get("first_seen", now),
+        "last_seen": now,
+        "message_count": old_user.get("message_count", 0) + 1,
+    }
+
+    save_users(users)
+
 
 def get_main_menu(user_id):
     buttons = [
-        ["📁 OR", "📁 GE"],
-        ["4 RM10_PERAYAAN", "STANDEE"],
-        ["DATE INFO"]
+        [BUTTON_OR, BUTTON_GE],
+        [CATEGORY_4_RM10, CATEGORY_STANDEE],
+        [BUTTON_DATE_INFO],
     ]
 
     if user_id == ADMIN_ID:
-        buttons.append(["👑 Admin"])
+        buttons.append([BUTTON_ADMIN])
 
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
+
+def get_back_menu():
+    return ReplyKeyboardMarkup([[BUTTON_BACK]], resize_keyboard=True)
+
+
+def get_admin_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["UPDATE OR", "UPDATE GE"],
+            ["UPDATE 4 RM10", "UPDATE STANDEE"],
+            [BUTTON_BACK],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def normalise_back_button(message):
+    return message.endswith(BUTTON_BACK)
+
+
+def is_admin_button(message):
+    return message == BUTTON_ADMIN or message.endswith("Admin")
+
+
+def is_or_button(message):
+    return message in {BUTTON_OR, "📁 OR"} or message.endswith(" OR")
+
+
+def is_ge_button(message):
+    return message in {BUTTON_GE, "📁 GE"} or message.endswith(" GE")
+
+
+def is_valid_date(message):
+    try:
+        datetime.strptime(message, "%d/%m/%Y")
+    except ValueError:
+        return False
+    return True
+
+
+def build_caption(item):
+    return (
+        "╭━━━【 PROMOTION 】━━━╮\n\n"
+        f"Title: {item.get('title', '')}\n\n"
+        "Effective Date\n"
+        f"{item.get('start', '')} -> {item.get('end', '')}\n\n"
+        "━━━━━━━━━━━━━━━━━━\n"
+        "Please refer to Nazs for latest update."
+    )
+
+
+def get_photo_file_id(update):
+    if not update.message or not update.message.photo:
+        return None
+    return update.message.photo[-1].file_id
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
 
-    intro_path = "data/intro.jpeg"
+    save_user(update)
 
-    if os.path.exists(intro_path):
-        with open(intro_path, "rb") as photo:
+    if os.path.exists(INTRO_FILE):
+        with open(INTRO_FILE, "rb") as photo:
             await update.message.reply_photo(
                 photo=photo,
-                caption="🤖 Welcome ini hanya test dari Nazs."
+                caption="Welcome. Sila pilih kategori di bawah.",
             )
     else:
         await update.message.reply_text(
-            "🤖 Welcome to OR & GE Bot\n\nSila pilih kategori di bawah."
+            "Welcome to OR & GE Bot.\n\nSila pilih kategori di bawah."
         )
 
-    # Lepas intro → baru tunjuk menu
-    await update.message.reply_text(
-        "Main Menu:",
-    reply_markup=get_main_menu(update.effective_user.id)
-    )
+    await show_main_menu(update, context)
+
+
+async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    save_user(update)
+    await show_main_menu(update, context)
+
 
 async def show_or_menu(update, context):
     data = load_data()
-    buttons = [[f"OR {k}"] for k in data["OR"].keys()]
-    buttons.append(["⬅️ Back"])
+    buttons = [[f"OR {key}"] for key in sorted(data[CATEGORY_OR].keys(), key=str)]
+    buttons.append([BUTTON_BACK])
+
     await update.message.reply_text(
-        "📁 OR LIST",
-        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+        "OR LIST",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
     )
+
 
 async def show_ge_menu(update, context):
     data = load_data()
-    buttons = [[f"GE {k}"] for k in data["GE"].keys()]
-    buttons.append(["⬅️ Back"])
+    buttons = [[f"GE {key}"] for key in sorted(data[CATEGORY_GE].keys(), key=str)]
+    buttons.append([BUTTON_BACK])
+
     await update.message.reply_text(
-        "📁 GE LIST",
-        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+        "GE LIST",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
     )
+
+
+async def show_standee_menu(update, context):
+    data = load_data()
+    standee_data = data.get(CATEGORY_STANDEE, {})
+    buttons = [[key] for key in sorted(standee_data.keys(), key=str)]
+    buttons.append([BUTTON_BACK])
+
+    await update.message.reply_text(
+        "Pilih Standee:",
+        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
+    )
+
 
 async def show_admin_menu(update, context):
     await update.message.reply_text(
-        "🔥 Admin Panel",
-        reply_markup=ADMIN_MENU
+        "Admin Panel",
+        reply_markup=get_admin_menu(),
     )
 
-async def send_images(update, context, data):
-    chat_id = update.effective_chat.id
-    media = []
-
-    caption = (
-    f"╭━━━〔 📢 PROMOTION 〕━━━╮\n\n"
-    f"🏷️ {data.get('title','')}\n\n"
-    f"📅 Effective Date\n"
-    f"└➤ {data.get('start','')}  ➜  {data.get('end','')}\n\n"
-    f"━━━━━━━━━━━━━━━━━━\n"
-    f"🛒 Please refer to nazs for latest update."
-    )
-
-    images = data.get("images", [])
-    print("DEBUG IMAGE:", images)
-
-    if not images:
-        await update.message.reply_text("❌ Tiada gambar.")
-        return
-
-    # Kalau hanya 1 gambar
-    if len(images) == 1:
-        await update.message.reply_photo(
-            photo=images[0],
-            caption=caption,
-            parse_mode="Markdown"
-        )
-        return
-
-    # Kalau lebih 1 gambar
-    for i, file_id in enumerate(images):
-        if i == 0:
-            media.append(
-                InputMediaPhoto(
-                    media=file_id,
-                    caption=caption,
-                    parse_mode="Markdown"
-                )
-            )
-        else:
-            media.append(InputMediaPhoto(media=file_id))
-
-    await context.bot.send_media_group(chat_id=chat_id, media=media)
 
 async def show_main_menu(update, context):
+    context.user_data.clear()
     await update.message.reply_text(
         "Main Menu:",
-        reply_markup=get_main_menu(update.effective_user.id)
+        reply_markup=get_main_menu(update.effective_user.id),
     )
+
+
+async def send_images(update, context, item):
+    if not update.message:
+        return
+
+    images = item.get("images", [])
+    if not isinstance(images, list):
+        images = []
+
+    images = [image for image in images if image]
+
+    if not images:
+        await update.message.reply_text("Tiada gambar.")
+        return
+
+    caption = build_caption(item)
+
+    try:
+        if len(images) == 1:
+            await update.message.reply_photo(photo=images[0], caption=caption)
+            return
+
+        media = [
+            InputMediaPhoto(media=file_id, caption=caption if index == 0 else None)
+            for index, file_id in enumerate(images)
+        ]
+        await context.bot.send_media_group(
+            chat_id=update.effective_chat.id,
+            media=media,
+        )
+    except TelegramError as error:
+        await update.message.reply_text(
+            f"Gagal hantar gambar. Sila update gambar semula.\nError: {error}"
+        )
+
+
+async def ask_for_update_number(update, context, category):
+    context.user_data.clear()
+    context.user_data["category"] = category
+    context.user_data["mode"] = "select_number"
+    await update.message.reply_text(
+        f"{category} nombor berapa?",
+        reply_markup=get_back_menu(),
+    )
+
+
+async def handle_update_trigger(update, context, message):
+    if message == "UPDATE OR":
+        await ask_for_update_number(update, context, CATEGORY_OR)
+        return True
+
+    if message == "UPDATE GE":
+        await ask_for_update_number(update, context, CATEGORY_GE)
+        return True
+
+    if message == "UPDATE STANDEE":
+        await ask_for_update_number(update, context, CATEGORY_STANDEE)
+        return True
+
+    if message == "UPDATE 4 RM10":
+        context.user_data.clear()
+        context.user_data["category"] = CATEGORY_4_RM10
+        context.user_data["item"] = "1"
+        context.user_data["mode"] = "image_a"
+        await update.message.reply_text(
+            "Upload gambar baru.",
+            reply_markup=get_back_menu(),
+        )
+        return True
+
+    return False
+
+
+async def handle_admin_state(update, context, message):
+    mode = context.user_data.get("mode")
+    if not mode:
+        return False
+
+    if mode == "select_number":
+        if not message.isdigit():
+            await update.message.reply_text("Sila masukkan nombor yang sah.")
+            return True
+
+        context.user_data["item"] = message
+        context.user_data["mode"] = "image_a"
+        await update.message.reply_text("Upload Gambar A.")
+        return True
+
+    if mode == "image_a":
+        file_id = get_photo_file_id(update)
+        if not file_id:
+            await update.message.reply_text("Sila upload gambar, bukan teks.")
+            return True
+
+        folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+
+        data = load_data()
+        data.setdefault(folder, {})
+        data[folder].setdefault(item_key, {})
+        data[folder][item_key]["images"] = [file_id]
+        save_data(data)
+
+        if folder == CATEGORY_4_RM10:
+            context.user_data["mode"] = "start_date"
+            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
+        else:
+            context.user_data["mode"] = "image_b"
+            await update.message.reply_text("Upload Gambar B.")
+        return True
+
+    if mode == "image_b":
+        file_id = get_photo_file_id(update)
+        if not file_id:
+            await update.message.reply_text("Sila upload gambar, bukan teks.")
+            return True
+
+        folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+
+        data = load_data()
+        data.setdefault(folder, {})
+        data[folder].setdefault(item_key, {})
+        data[folder][item_key].setdefault("images", [])
+        data[folder][item_key]["images"].append(file_id)
+        save_data(data)
+
+        context.user_data["mode"] = "start_date"
+        await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
+        return True
+
+    if mode == "start_date":
+        if not is_valid_date(message):
+            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
+            return True
+
+        context.user_data["start_date"] = message
+        context.user_data["mode"] = "end_date"
+        await update.message.reply_text("Masukkan tarikh tamat (DD/MM/YYYY).")
+        return True
+
+    if mode == "end_date":
+        if not is_valid_date(message):
+            await update.message.reply_text("Masukkan tarikh tamat (DD/MM/YYYY).")
+            return True
+
+        folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+
+        data = load_data()
+        data.setdefault(folder, {})
+        data[folder].setdefault(item_key, {})
+        data[folder][item_key]["title"] = (
+            CATEGORY_4_RM10 if folder == CATEGORY_4_RM10 else f"{folder} {item_key}"
+        )
+        data[folder][item_key]["start"] = context.user_data["start_date"]
+        data[folder][item_key]["end"] = message
+        save_data(data)
+
+        context.user_data.clear()
+        await update.message.reply_text("Update berjaya!")
+        await show_main_menu(update, context)
+        return True
+
+    context.user_data.clear()
+    await update.message.reply_text("Sesi update tidak sah. Sila mula semula.")
+    await show_main_menu(update, context)
+    return True
+
+
+async def handle_date_info(update):
+    now = malaysia_now()
+    date_45 = now + timedelta(days=45)
+    date_60 = now + timedelta(days=60)
+    date_90 = now + timedelta(days=90)
+
+    response = (
+        "DATE INFO\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"45 Days -> {date_45.strftime('%d/%m/%Y')}\n"
+        f"60 Days -> {date_60.strftime('%d/%m/%Y')}\n"
+        f"90 Days -> {date_90.strftime('%d/%m/%Y')}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"Generated: {now.strftime('%d/%m/%Y %H:%M')}\n"
+        "TIME WAITS FOR NO ONE"
+    )
+
+    await update.message.reply_text(response)
+
 
 # ================= MESSAGE HANDLER =================
 async def handle_message(update, context):
-    msg = update.message.text.strip() if update.message.text else ""
-    user_id = update.effective_user.id
-    mode = context.user_data.get("mode")
+    if not update.message:
+        return
 
-    # BACK (WAJIB PALING ATAS)
-    if msg.endswith("Back"):
+    save_user(update)
+
+    message = update.message.text.strip() if update.message.text else ""
+    user_id = update.effective_user.id
+
+    if normalise_back_button(message):
         await show_main_menu(update, context)
         return
 
-    # ADMIN
-    if msg == "👑 Admin":
+    if is_admin_button(message):
         if user_id != ADMIN_ID:
-            await update.message.reply_text("❌ No access")
+            await update.message.reply_text("No access.")
             return
+
+        context.user_data.clear()
         await show_admin_menu(update, context)
         return
 
-    # ==============================
-    # BUTTON TRIGGER
-    # ==============================
-
-    if msg == "UPDATE OR":
-        context.user_data["category"] = "OR"
-        context.user_data["mode"] = "select_number"
-        await update.message.reply_text("OR nombor berapa?")
+    if user_id == ADMIN_ID and await handle_update_trigger(update, context, message):
         return
 
-    if msg == "UPDATE GE":
-        context.user_data["category"] = "GE"
-        context.user_data["mode"] = "select_number"
-        await update.message.reply_text("GE nombor berapa?")
-        return
-    
-    if msg == "UPDATE STANDEE":
-        context.user_data["category"] = "STANDEE"
-        context.user_data["mode"] = "select_number"
-        await update.message.reply_text("STANDEE nombor berapa?")
-        return
-    
-    if msg == "UPDATE 4 RM10":
-        context.user_data["category"] = "4 RM10_PERAYAAN"
-        context.user_data["item"] = "1"
-        context.user_data["mode"] = "image_a"
-        await update.message.reply_text("Upload Gambar Baru")
+    if await handle_admin_state(update, context, message):
         return
 
-    # ADMIN STATE MACHINE
+    data = load_data()
 
-    mode = context.user_data.get("mode")
-
-    # ---------- STEP 1: SELECT NUMBER ----------
-    if mode == "select_number":
-        if msg and msg.isdigit():
-            context.user_data["item"] = msg
-            context.user_data["mode"] = "image_a"
-            await update.message.reply_text("Upload Gambar A")
-        else:
-            await update.message.reply_text("Sila masukkan nombor yang sah.")
-        return
-
-
-    # ---------- STEP 2: IMAGE A ----------
-    if mode == "image_a":
-        if update.message.photo:
-
-            file_id = update.message.photo[-1].file_id
-
-        folder = context.user_data["category"]
-        item = context.user_data["item"]
-
-        data = load_data()
-
-        if folder not in data:
-            data[folder] = {}
-
-        if item not in data[folder]:
-            data[folder][item] = {}
-
-        # simpan gambar pertama
-        data[folder][item]["images"] = [file_id]
-
-        save_data(data)
-
-        # kalau 4 RM10 → terus date
-        if folder == "4 RM10_PERAYAAN":
-            context.user_data["mode"] = "start_date"
-            await update.message.reply_text(
-                "Masukkan tarikh mula (DD/MM/YYYY)"
-            )
-
-        else:
-            # OR / GE / STANDEE → minta gambar kedua
-            context.user_data["mode"] = "image_b"
-            await update.message.reply_text(
-                "Upload Gambar B"
-            )
-
-        return
-
-
-    # ---------- STEP 3: IMAGE B ----------
-    if mode == "image_b":
-        if update.message.photo:
-            file_id = update.message.photo[-1].file_id
-
-            folder = context.user_data["category"]
-            item = context.user_data["item"]
-
-            data = load_data()
-
-            data[folder][item]["images"].append(file_id)
-
-            save_data(data)
-
-            context.user_data["mode"] = "start_date"
-            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY)")
-        return
-
-
-    # ---------- STEP 4: START DATE ----------
-    if mode == "start_date":
-        context.user_data["start_date"] = msg
-        context.user_data["mode"] = "end_date"
-        await update.message.reply_text("Masukkan tarikh END (YYYY-MM-DD)")
-        return
-
-
-    # ---------- STEP 5: END DATE ----------
-    if mode == "end_date":
-        context.user_data["end_date"] = msg
-
-        folder = context.user_data["category"]
-        item = context.user_data["item"]
-
-        data = load_data()   # WAJIB letak sini
-
-        if folder not in data:
-            data[folder] = {}
-
-        if item not in data[folder]:
-            data[folder][item] = {}
-
-        if folder == "4 RM10_PERAYAAN":
-            data[folder][item]["title"] = "4 RM10_PERAYAAN"
-        else:
-            data[folder][item]["title"] = f"{folder} {item}"
-
-        data[folder][item]["start"] = context.user_data["start_date"]
-        data[folder][item]["end"] = context.user_data["end_date"]
-
-        save_data(data)
-
-        await update.message.reply_text("✅ Update berjaya!")
-        context.user_data.clear()
-        return
-
-    # MAIN MENU
-    if msg == "📁 OR":
+    if is_or_button(message):
         await show_or_menu(update, context)
         return
 
-    if msg == "📁 GE":
+    if is_ge_button(message):
         await show_ge_menu(update, context)
         return
 
-    # 4 RM10 + PERAYAAN
-    if msg == "4 RM10_PERAYAAN":
-        data = load_data()
-
-        if (
-            "4 RM10_PERAYAAN" in data and
-            "1" in data["4 RM10_PERAYAAN"]
-        ):
-            await send_images(
-                update,
-                context,
-                data["4 RM10_PERAYAAN"]["1"]
-            )
+    if message == CATEGORY_4_RM10:
+        item = data.get(CATEGORY_4_RM10, {}).get("1")
+        if item:
+            await send_images(update, context, item)
         else:
-            await update.message.reply_text("❌ Promo belum diset.")
+            await update.message.reply_text("Promo belum diset.")
         return
 
-    # STANDEE
-    if msg == "STANDEE":
-        data = load_data()
-        standee_data = data.get("STANDEE", {})
-        buttons = [[k] for k in standee_data.keys()]
-        buttons.append(["← Back"])
-
-        await update.message.reply_text(
-            "Pilih Standee:",
-            reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True)
-    )
+    if message == CATEGORY_STANDEE:
+        await show_standee_menu(update, context)
         return
 
-
-    data = load_data()
-    standee_data = data.get("STANDEE", {})
-
-    if msg in standee_data:
-        item = standee_data[msg]
-
-        await send_images(update, context, item)
+    standee_data = data.get(CATEGORY_STANDEE, {})
+    if message in standee_data:
+        await send_images(update, context, standee_data[message])
         return
 
-    # OR ITEM
-    if msg.startswith("OR "):
-        parts = msg.split(" ", 1)
-        if len(parts) != 2:
-            await update.message.reply_text("❌ Format salah")
-            return
-
-        key = parts[1]
-        data = load_data()
-        if key in data["OR"]:
-            await send_images(update, context, data["OR"][key])
+    if message.startswith("OR "):
+        key = message.split(" ", 1)[1].strip()
+        item = data.get(CATEGORY_OR, {}).get(key)
+        if item:
+            await send_images(update, context, item)
         else:
-            await update.message.reply_text("❌ OR tidak wujud")
+            await update.message.reply_text("OR tidak wujud.")
         return
 
-    # GE ITEM
-    if msg.startswith("GE "):
-        parts = msg.split(" ", 1)
-        if len(parts) != 2:
-            await update.message.reply_text("❌ Format salah")
-            return
-
-        key = parts[1]
-        data = load_data()
-        if key in data["GE"]:
-            await send_images(update, context, data["GE"][key])
-
+    if message.startswith("GE "):
+        key = message.split(" ", 1)[1].strip()
+        item = data.get(CATEGORY_GE, {}).get(key)
+        if item:
+            await send_images(update, context, item)
         else:
-            await update.message.reply_text("❌ GE tidak wujud")
+            await update.message.reply_text("GE tidak wujud.")
         return
-    if msg == "DATE INFO":
 
-        now = datetime.now(ZoneInfo("Asia/Kuala_Lumpur"))
-        today = now
+    if message == BUTTON_DATE_INFO:
+        await handle_date_info(update)
+        return
 
-        date_45 = today + timedelta(days=45)
-        date_60 = today + timedelta(days=60)
-        date_90 = today + timedelta(days=90)
-
-        response = (
-    "📅 DATE INFO\n"
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-    f"⏳ 45 Days  ➤  {date_45.strftime('%d/%m/%Y')}\n"
-    f"⏳ 60 Days  ➤  {date_60.strftime('%d/%m/%Y')}\n"
-    f"⏳ 90 Days  ➤  {date_90.strftime('%d/%m/%Y')}\n\n"
-    "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-    f"🕒 Generated : {now.strftime('%d/%m/%Y  %H:%M')}\n"
-    "🩸 TIME WAITS FOR NO ONE"
+    await update.message.reply_text(
+        "Arahan tidak dikenali.\nSila pilih menu.",
+        reply_markup=get_main_menu(user_id),
     )
 
-        await update.message.reply_text(response, parse_mode="Markdown")
-        return
-
-    # ===== FALLBACK =====
-    if not context.user_data.get("mode"):
-        await update.message.reply_text(
-        "! Arahan tidak dikenali.\nSila pilih menu.",
-    reply_markup=get_main_menu(update.effective_user.id)
-    )
-        return
 
 # ================= MAIN =================
 def main():
+    if not TOKEN:
+        raise RuntimeError("TOKEN tidak dijumpai. Set environment variable TOKEN dulu.")
+
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("menu", menu))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
-    print("🤖 Bot running...")
+
+    print("Bot running...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
