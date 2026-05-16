@@ -27,7 +27,9 @@ from config import (
     CATEGORY_STANDEE,
     DATA_DIR,
     DATA_FILE,
+    INTRO_ANIMATION_FILE,
     INTRO_FILE,
+    INTRO_GIF_FILE,
     TOKEN,
     USERS_FILE,
 )
@@ -213,12 +215,11 @@ def get_user_display_name(user):
 
 def build_caption(item):
     return (
-        "╭━━━【 PROMOTION 】━━━╮\n\n"
-        f"Title: {item.get('title', '')}\n\n"
-        "Effective Date\n"
-        f"{item.get('start', '')} -> {item.get('end', '')}\n\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "Please refer to Nazs for latest update."
+        "📢 PROMOTION\n\n"
+        f"🏷️ Title: {item.get('title', '')}\n"
+        f"📅 Date : {item.get('start', '')} - {item.get('end', '')}\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "📌 Please refer to Nazs for latest update."
     )
 
 
@@ -228,23 +229,36 @@ def get_photo_file_id(update):
     return update.message.photo[-1].file_id
 
 
+async def send_intro(update):
+    caption = "Welcome. Sila pilih kategori di bawah."
+
+    if os.path.exists(INTRO_ANIMATION_FILE):
+        with open(INTRO_ANIMATION_FILE, "rb") as animation:
+            await update.message.reply_animation(animation=animation, caption=caption)
+        return
+
+    if os.path.exists(INTRO_GIF_FILE):
+        with open(INTRO_GIF_FILE, "rb") as animation:
+            await update.message.reply_animation(animation=animation, caption=caption)
+        return
+
+    if os.path.exists(INTRO_FILE):
+        with open(INTRO_FILE, "rb") as photo:
+            await update.message.reply_photo(photo=photo, caption=caption)
+        return
+
+    await update.message.reply_text(
+        "Welcome to OR & GE Bot.\n\nSila pilih kategori di bawah."
+    )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
 
     save_user(update)
 
-    if os.path.exists(INTRO_FILE):
-        with open(INTRO_FILE, "rb") as photo:
-            await update.message.reply_photo(
-                photo=photo,
-                caption="Welcome. Sila pilih kategori di bawah.",
-            )
-    else:
-        await update.message.reply_text(
-            "Welcome to OR & GE Bot.\n\nSila pilih kategori di bawah."
-        )
-
+    await send_intro(update)
     await show_main_menu(update, context)
 
 

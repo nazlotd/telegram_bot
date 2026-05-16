@@ -26,3 +26,25 @@ data/
 
 Folder local ini sesuai untuk development, tapi biasanya tidak selamat untuk
 data runtime di platform deploy yang rebuild/redeploy dari Git.
+
+## Intro Bergerak
+
+Bot akan cari intro mengikut susunan ini:
+
+```text
+data/intro.mp4
+data/intro.gif
+data/intro.jpeg
+```
+
+Untuk intro bergerak, letak fail `intro.mp4` atau `intro.gif` dalam folder
+`data/`. Fail `intro.mp4` lebih digalakkan kerana biasanya lebih kecil dan
+lebih lancar di Telegram.
+
+Jika mahu guna path lain semasa deploy, set environment variable:
+
+```text
+INTRO_ANIMATION_FILE=/path/intro.mp4
+INTRO_GIF_FILE=/path/intro.gif
+INTRO_FILE=/path/intro.jpeg
+```
