@@ -146,7 +146,7 @@ def get_admin_menu():
             ["UPDATE OR", "UPDATE GE"],
             ["UPDATE 4 RM10", "UPDATE STANDEE"],
             ["ADMIN STATS", "USER LIST"],
-            ["PROMO LIST"],
+            ["PROMO LIST", "STORAGE INFO"],
             [BUTTON_BACK],
         ],
         resize_keyboard=True,
@@ -415,6 +415,33 @@ async def show_promo_list(update):
     await update.message.reply_text("\n".join(lines), reply_markup=get_admin_menu())
 
 
+async def show_storage_info(update):
+    data = load_data()
+    users = load_users()
+    data_exists = os.path.exists(DATA_FILE)
+    users_exists = os.path.exists(USERS_FILE)
+    data_size = os.path.getsize(DATA_FILE) if data_exists else 0
+    users_size = os.path.getsize(USERS_FILE) if users_exists else 0
+
+    promo_count = sum(len(data.get(category, {})) for category in CATEGORIES)
+
+    response = (
+        "STORAGE INFO\n"
+        "------------------\n"
+        f"DATA_DIR:\n{DATA_DIR}\n\n"
+        f"DATA_FILE:\n{DATA_FILE}\n"
+        f"Exists: {data_exists}\n"
+        f"Size: {data_size} bytes\n\n"
+        f"USERS_FILE:\n{USERS_FILE}\n"
+        f"Exists: {users_exists}\n"
+        f"Size: {users_size} bytes\n\n"
+        f"Promo item: {promo_count}\n"
+        f"User: {len(users)}"
+    )
+
+    await update.message.reply_text(response, reply_markup=get_admin_menu())
+
+
 async def handle_admin_panel_action(update, message):
     if message == "ADMIN STATS":
         await show_admin_stats(update)
@@ -426,6 +453,10 @@ async def handle_admin_panel_action(update, message):
 
     if message == "PROMO LIST":
         await show_promo_list(update)
+        return True
+
+    if message == "STORAGE INFO":
+        await show_storage_info(update)
         return True
 
     return False
@@ -684,6 +715,9 @@ def main():
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
 
     print("Bot running...")
+    print(f"DATA_DIR: {DATA_DIR}")
+    print(f"DATA_FILE: {DATA_FILE}")
+    print(f"USERS_FILE: {USERS_FILE}")
     app.run_polling()
 
 
