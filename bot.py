@@ -140,6 +140,16 @@ def get_back_menu():
     return ReplyKeyboardMarkup([[BUTTON_BACK]], resize_keyboard=True)
 
 
+def get_number_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["1", "2", "3", "4", "5"],
+            [BUTTON_BACK],
+        ],
+        resize_keyboard=True,
+    )
+
+
 def get_admin_menu():
     return ReplyKeyboardMarkup(
         [
@@ -467,8 +477,8 @@ async def ask_for_update_number(update, context, category):
     context.user_data["category"] = category
     context.user_data["mode"] = "select_number"
     await update.message.reply_text(
-        f"{category} nombor berapa?",
-        reply_markup=get_back_menu(),
+        f"Pilih nombor {category} yang nak diupdate.",
+        reply_markup=get_number_menu(),
     )
 
 
@@ -505,8 +515,11 @@ async def handle_admin_state(update, context, message):
         return False
 
     if mode == "select_number":
-        if not message.isdigit():
-            await update.message.reply_text("Sila masukkan nombor yang sah.")
+        if message not in {"1", "2", "3", "4", "5"}:
+            await update.message.reply_text(
+                "Sila pilih nombor 1 hingga 5.",
+                reply_markup=get_number_menu(),
+            )
             return True
 
         context.user_data["item"] = message
