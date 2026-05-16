@@ -155,11 +155,51 @@ def get_number_menu():
 def get_admin_menu():
     return ReplyKeyboardMarkup(
         [
+            ["Update Promo"],
+            ["Manage Promo"],
+            ["Users", "Storage"],
+            [BUTTON_BACK],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_admin_update_menu():
+    return ReplyKeyboardMarkup(
+        [
             ["UPDATE OR", "UPDATE GE"],
             ["UPDATE 4 RM10", "UPDATE STANDEE"],
-            ["ADMIN STATS", "USER LIST"],
-            ["PROMO LIST", "STORAGE INFO"],
-            [BUTTON_BACK],
+            ["Back Admin"],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_admin_manage_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["PROMO LIST"],
+            ["Back Admin"],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_admin_users_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["USER LIST", "ADMIN STATS"],
+            ["Back Admin"],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_admin_storage_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["STORAGE INFO"],
+            ["Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -318,10 +358,38 @@ async def show_standee_menu(update, context):
     )
 
 
-async def show_admin_menu(update, context):
+async def show_admin_menu(update, context=None):
     await update.message.reply_text(
         "Admin Panel",
         reply_markup=get_admin_menu(),
+    )
+
+
+async def show_admin_update_menu(update):
+    await update.message.reply_text(
+        "Update Promo",
+        reply_markup=get_admin_update_menu(),
+    )
+
+
+async def show_admin_manage_menu(update):
+    await update.message.reply_text(
+        "Manage Promo",
+        reply_markup=get_admin_manage_menu(),
+    )
+
+
+async def show_admin_users_menu(update):
+    await update.message.reply_text(
+        "Users",
+        reply_markup=get_admin_users_menu(),
+    )
+
+
+async def show_admin_storage_menu(update):
+    await update.message.reply_text(
+        "Storage",
+        reply_markup=get_admin_storage_menu(),
     )
 
 
@@ -391,7 +459,7 @@ async def show_admin_stats(update):
         + "\n".join(category_lines)
     )
 
-    await update.message.reply_text(response, reply_markup=get_admin_menu())
+    await update.message.reply_text(response, reply_markup=get_admin_users_menu())
 
 
 async def show_user_list(update, limit=15):
@@ -400,7 +468,7 @@ async def show_user_list(update, limit=15):
     if not users:
         await update.message.reply_text(
             "Belum ada user disimpan.",
-            reply_markup=get_admin_menu(),
+            reply_markup=get_admin_users_menu(),
         )
         return
 
@@ -420,7 +488,7 @@ async def show_user_list(update, limit=15):
     if len(users) > limit:
         lines.append(f"\nPaparan {limit} user terbaru sahaja.")
 
-    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_menu())
+    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_users_menu())
 
 
 async def show_promo_list(update):
@@ -436,7 +504,7 @@ async def show_promo_list(update):
         item_keys = ", ".join(sorted(items.keys(), key=str))
         lines.append(f"{category}: {item_keys}")
 
-    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_menu())
+    await update.message.reply_text("\n".join(lines), reply_markup=get_admin_manage_menu())
 
 
 async def show_storage_info(update):
@@ -463,10 +531,30 @@ async def show_storage_info(update):
         f"User: {len(users)}"
     )
 
-    await update.message.reply_text(response, reply_markup=get_admin_menu())
+    await update.message.reply_text(response, reply_markup=get_admin_storage_menu())
 
 
 async def handle_admin_panel_action(update, message):
+    if message == "Back Admin":
+        await show_admin_menu(update)
+        return True
+
+    if message == "Update Promo":
+        await show_admin_update_menu(update)
+        return True
+
+    if message == "Manage Promo":
+        await show_admin_manage_menu(update)
+        return True
+
+    if message == "Users":
+        await show_admin_users_menu(update)
+        return True
+
+    if message == "Storage":
+        await show_admin_storage_menu(update)
+        return True
+
     if message == "ADMIN STATS":
         await show_admin_stats(update)
         return True
@@ -614,7 +702,7 @@ async def handle_admin_state(update, context, message):
 
         context.user_data.clear()
         await update.message.reply_text("Update berjaya!")
-        await show_main_menu(update, context)
+        await show_admin_menu(update)
         return True
 
     context.user_data.clear()
