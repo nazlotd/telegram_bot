@@ -4,10 +4,10 @@ TOKEN = os.getenv("TOKEN")
 ADMIN_ID = 817761548  # Tukar kepada Telegram ID admin jika perlu.
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "data"))
 DATA_FILE = os.path.join(DATA_DIR, "data.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
-INTRO_FILE = os.path.join(DATA_DIR, "intro.jpeg")
+INTRO_FILE = os.getenv("INTRO_FILE", os.path.join(BASE_DIR, "data", "intro.jpeg"))
 
 CATEGORY_OR = "OR"
 CATEGORY_GE = "GE"
