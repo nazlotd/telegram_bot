@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NazsBot Telegram Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #e7eef5;
+      --phone: #ffffff;
+      --header: #2f80ed;
+      --chat: #dfeaf3;
+      --bot: #ffffff;
+      --text: #18212f;
+      --muted: #6b7685;
+      --button: #f7f9fc;
+      --button-border: #cbd6e2;
+      --accent: #1d8cf8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(47, 128, 237, 0.16), transparent 36rem),
+        linear-gradient(135deg, #eef3f8, #dce7f0);
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+    }
+
+    .wrap {
+      width: min(1120px, 100%);
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .phone {
+      width: 390px;
+      height: 780px;
+      border: 10px solid #141924;
+      border-radius: 34px;
+      overflow: hidden;
+      background: var(--phone);
+      box-shadow: 0 24px 70px rgba(20, 25, 36, 0.24);
+    }
+
+    .header {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      background: var(--header);
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      background: #111827;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .title {
+      line-height: 1.2;
+    }
+
+    .title strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .title span {
+      font-size: 12px;
+      opacity: 0.88;
+    }
+
+    .chat {
+      height: calc(100% - 72px);
+      display: flex;
+      flex-direction: column;
+      background:
+        linear-gradient(rgba(223, 234, 243, 0.88), rgba(223, 234, 243, 0.88)),
+        repeating-linear-gradient(45deg, transparent, transparent 12px, rgba(255,255,255,0.28) 12px, rgba(255,255,255,0.28) 13px);
+    }
+
+    .messages {
+      flex: 1;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .bubble {
+      width: fit-content;
+      max-width: 315px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 8px 8px 8px 2px;
+      background: var(--bot);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+      font-size: 14px;
+      line-height: 1.35;
+      white-space: pre-line;
+    }
+
+    .bubble.user {
+      margin-left: auto;
+      border-radius: 8px 8px 2px 8px;
+      background: #d8f8c6;
+    }
+
+    .media {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      background: #10131b;
+    }
+
+    .media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .time {
+      display: block;
+      margin-top: 5px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .keyboard {
+      padding: 8px;
+      background: rgba(245, 247, 250, 0.98);
+      border-top: 1px solid rgba(180, 190, 204, 0.65);
+    }
+
+    .keys {
+      display: grid;
+      gap: 6px;
+    }
+
+    .key-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      gap: 6px;
+    }
+
+    .key {
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      padding: 7px;
+      border: 1px solid var(--button-border);
+      border-radius: 6px;
+      background: var(--button);
+      color: #172033;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .side {
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(193, 205, 220, 0.9);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 14px 35px rgba(20, 25, 36, 0.08);
+    }
+
+    h1, h2 {
+      margin: 0 0 12px;
+      line-height: 1.15;
+    }
+
+    h1 {
+      font-size: 30px;
+    }
+
+    h2 {
+      font-size: 17px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .mini {
+      padding: 12px;
+      border: 1px solid #d4deea;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .mini strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    @media (max-width: 880px) {
+      body {
+        place-items: start center;
+      }
+
+      .wrap {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .phone {
+        width: min(390px, 100%);
+        height: 760px;
+        justify-self: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="phone" aria-label="Telegram preview">
+      <header class="header">
+        <div class="avatar">N</div>
+        <div class="title">
+          <strong>NazsBot</strong>
+          <span>bot</span>
+        </div>
+      </header>
+
+      <div class="chat">
+        <div class="messages">
+          <div class="bubble user">/start<span class="time">06:12</span></div>
+
+          <div class="bubble">
+            <div class="media">
+              <img src="data/intro.jpeg" alt="NazsBot intro">
+            </div>
+            Welcome. Sila pilih kategori di bawah.
+            <span class="time">06:12</span>
+          </div>
+
+          <div class="bubble">Main Menu:<span class="time">06:12</span></div>
+
+          <div class="bubble">
+📢 PROMOTION
+
+🏷️ Title: OR 1
+📅 Date : 01/01/2026 - 31/01/2026
+
+━━━━━━━━━━━━━━━━
+📌 Please refer to Nazs for latest update.
+            <span class="time">06:13</span>
+          </div>
+        </div>
+
+        <div class="keyboard">
+          <div class="keys">
+            <div class="key-row">
+              <div class="key">OR</div>
+              <div class="key">GE</div>
+            </div>
+            <div class="key-row">
+              <div class="key">4 RM10_PERAYAAN</div>
+              <div class="key">STANDEE</div>
+            </div>
+            <div class="key-row">
+              <div class="key">DATE INFO</div>
+            </div>
+            <div class="key-row">
+              <div class="key">Admin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h1>Telegram Visual Preview</h1>
+        <p>Fail ini cuma mockup visual untuk tengok rupa mesej, caption, intro dan reply keyboard. Ia tidak connect ke Telegram sebenar.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Admin Panel Baru</h2>
+        <div class="mini-grid">
+          <div class="mini">
+            <strong>Admin Panel</strong>
+            Update Promo<br>
+            Manage Promo<br>
+            Users / Storage<br>
+            Back
+          </div>
+          <div class="mini">
+            <strong>Update Promo</strong>
+            UPDATE OR / UPDATE GE<br>
+            UPDATE 4 RM10<br>
+            UPDATE STANDEE<br>
+            Back Admin
+          </div>
+          <div class="mini">
+            <strong>Users</strong>
+            USER LIST<br>
+            ADMIN STATS<br>
+            Back Admin
+          </div>
+          <div class="mini">
+            <strong>Storage</strong>
+            STORAGE INFO<br>
+            Back Admin
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+</body>
+</html>
