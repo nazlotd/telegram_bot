@@ -101,7 +101,7 @@
     .messages {
       flex: 1;
       padding: 14px;
-      overflow: hidden;
+      overflow: auto;
     }
 
     .bubble {
@@ -167,6 +167,7 @@
 
     .key {
       min-height: 38px;
+      width: 100%;
       display: grid;
       place-items: center;
       padding: 7px;
@@ -177,6 +178,13 @@
       font-size: 13px;
       font-weight: 600;
       text-align: center;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .key:hover {
+      border-color: var(--accent);
+      background: #ffffff;
     }
 
     .side {
@@ -262,7 +270,7 @@
       </header>
 
       <div class="chat">
-        <div class="messages">
+        <div class="messages" id="messages">
           <div class="bubble user">/start<span class="time">06:12</span></div>
 
           <div class="bubble">
@@ -288,22 +296,7 @@
         </div>
 
         <div class="keyboard">
-          <div class="keys">
-            <div class="key-row">
-              <div class="key">OR</div>
-              <div class="key">GE</div>
-            </div>
-            <div class="key-row">
-              <div class="key">4 RM10_PERAYAAN</div>
-              <div class="key">STANDEE</div>
-            </div>
-            <div class="key-row">
-              <div class="key">DATE INFO</div>
-            </div>
-            <div class="key-row">
-              <div class="key">Admin</div>
-            </div>
-          </div>
+          <div class="keys" id="keyboard"></div>
         </div>
       </div>
     </section>
@@ -346,5 +339,255 @@
       </section>
     </aside>
   </main>
+  <script>
+    const messages = document.querySelector("#messages");
+    const keyboard = document.querySelector("#keyboard");
+
+    const menus = {
+      main: [
+        ["OR", "GE"],
+        ["4 RM10_PERAYAAN", "STANDEE"],
+        ["DATE INFO"],
+        ["Admin"],
+      ],
+      admin: [
+        ["Update Promo"],
+        ["Manage Promo"],
+        ["Users", "Storage"],
+        ["Back"],
+      ],
+      update: [
+        ["UPDATE OR", "UPDATE GE"],
+        ["UPDATE 4 RM10", "UPDATE STANDEE"],
+        ["Back Admin"],
+      ],
+      manage: [
+        ["PROMO LIST"],
+        ["Back Admin"],
+      ],
+      users: [
+        ["USER LIST", "ADMIN STATS"],
+        ["Back Admin"],
+      ],
+      storage: [
+        ["STORAGE INFO"],
+        ["Back Admin"],
+      ],
+      numbers: [
+        ["1", "2", "3", "4", "5"],
+        ["Back"],
+      ],
+      orList: [
+        ["OR 1"],
+        ["OR 2"],
+        ["OR 3"],
+        ["OR 4"],
+        ["OR 5"],
+        ["Back"],
+      ],
+      geList: [
+        ["GE 1"],
+        ["GE 2"],
+        ["GE 3"],
+        ["GE 4"],
+        ["GE 5"],
+        ["Back"],
+      ],
+      standeeList: [
+        ["1", "2", "3", "4", "5"],
+        ["Back"],
+      ],
+    };
+
+    let activeUpdate = "";
+
+    function timeNow() {
+      return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function addBubble(text, type = "bot") {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble${type === "user" ? " user" : ""}`;
+      bubble.textContent = text;
+
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = timeNow();
+      bubble.appendChild(time);
+
+      messages.appendChild(bubble);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function addPromo(title = "OR 1") {
+      addBubble(`📢 PROMOTION
+
+🏷️ Title: ${title}
+📅 Date : 01/01/2026 - 31/01/2026
+
+━━━━━━━━━━━━━━━━
+📌 Please refer to Nazs for latest update.`);
+    }
+
+    function setMenu(name) {
+      keyboard.innerHTML = "";
+      menus[name].forEach((row) => {
+        const rowEl = document.createElement("div");
+        rowEl.className = "key-row";
+
+        row.forEach((label) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "key";
+          button.textContent = label;
+          button.addEventListener("click", () => handleButton(label));
+          rowEl.appendChild(button);
+        });
+
+        keyboard.appendChild(rowEl);
+      });
+    }
+
+    function handleUpdateButton(label) {
+      activeUpdate = label.replace("UPDATE ", "");
+      addBubble(label, "user");
+
+      if (label === "UPDATE 4 RM10") {
+        addBubble("Upload gambar baru.");
+        setMenu("main");
+        return;
+      }
+
+      addBubble(`Pilih nombor ${activeUpdate} yang nak diupdate.`);
+      setMenu("numbers");
+    }
+
+    function handleButton(label) {
+      if (label.startsWith("UPDATE ")) {
+        handleUpdateButton(label);
+        return;
+      }
+
+      addBubble(label, "user");
+
+      if (["1", "2", "3", "4", "5"].includes(label) && activeUpdate) {
+        addBubble("Upload Gambar A.");
+        activeUpdate = "";
+        setMenu("update");
+        return;
+      }
+
+      if (label.startsWith("OR ")) {
+        addPromo(label);
+        return;
+      }
+
+      if (label.startsWith("GE ")) {
+        addPromo(label);
+        return;
+      }
+
+      const actions = {
+        "OR": () => {
+          addBubble("OR LIST");
+          setMenu("orList");
+        },
+        "GE": () => {
+          addBubble("GE LIST");
+          setMenu("geList");
+        },
+        "4 RM10_PERAYAAN": () => addPromo("4 RM10_PERAYAAN"),
+        "STANDEE": () => {
+          addBubble("Pilih Standee:");
+          setMenu("standeeList");
+        },
+        "DATE INFO": () => addBubble(`DATE INFO
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+45 Days -> 01/07/2026
+60 Days -> 16/07/2026
+90 Days -> 15/08/2026
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+Generated: 17/05/2026 06:12
+TIME WAITS FOR NO ONE`),
+        "Admin": () => {
+          addBubble("Admin Panel");
+          setMenu("admin");
+        },
+        "Update Promo": () => {
+          addBubble("Update Promo");
+          setMenu("update");
+        },
+        "Manage Promo": () => {
+          addBubble("Manage Promo");
+          setMenu("manage");
+        },
+        "Users": () => {
+          addBubble("Users");
+          setMenu("users");
+        },
+        "Storage": () => {
+          addBubble("Storage");
+          setMenu("storage");
+        },
+        "PROMO LIST": () => addBubble(`PROMO LIST
+------------------
+OR: 1, 2, 3, 4, 5
+GE: 1, 2, 3, 4, 5
+STANDEE: 1, 2, 3, 4, 5
+4 RM10_PERAYAAN: 1`),
+        "USER LIST": () => addBubble(`USER LIST (3 total)
+------------------
+1. @darkFlash | ID: 817761548 | Msg: 24 | Last: 17/05/2026 06:12
+2. @testuser | ID: 12345 | Msg: 7 | Last: 17/05/2026 05:40
+3. Nazs | ID: 99887 | Msg: 2 | Last: 16/05/2026 22:10`),
+        "ADMIN STATS": () => addBubble(`ADMIN STATS
+------------------
+Total user: 3
+
+Promo:
+OR: 5 item, 10 gambar
+GE: 5 item, 10 gambar
+STANDEE: 5 item, 10 gambar
+4 RM10_PERAYAAN: 1 item, 1 gambar`),
+        "STORAGE INFO": () => addBubble(`STORAGE INFO
+------------------
+DATA_DIR:
+/app/data
+
+DATA_FILE:
+/app/data/data.json
+Exists: true
+Size: 1280 bytes
+
+USERS_FILE:
+/app/data/users.json
+Exists: true
+Size: 430 bytes`),
+        "Back Admin": () => {
+          activeUpdate = "";
+          addBubble("Admin Panel");
+          setMenu("admin");
+        },
+        "Back": () => {
+          activeUpdate = "";
+          addBubble("Main Menu:");
+          setMenu("main");
+        },
+      };
+
+      if (actions[label]) {
+        actions[label]();
+        return;
+      }
+
+      if (["1", "2", "3", "4", "5"].includes(label)) {
+        addPromo(`STANDEE ${label}`);
+      }
+    }
+
+    setMenu("main");
+  </script>
 </body>
 </html>

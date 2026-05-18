@@ -142,6 +142,16 @@ def get_back_menu():
     return ReplyKeyboardMarkup([[BUTTON_BACK]], resize_keyboard=True)
 
 
+def get_confirm_menu():
+    return ReplyKeyboardMarkup(
+        [
+            ["CONFIRM UPDATE", "CANCEL UPDATE"],
+            ["Back Admin"],
+        ],
+        resize_keyboard=True,
+    )
+
+
 def get_number_menu():
     return ReplyKeyboardMarkup(
         [
@@ -199,6 +209,7 @@ def get_admin_storage_menu():
     return ReplyKeyboardMarkup(
         [
             ["STORAGE INFO"],
+            ["BACKUP DATA", "RESTORE DATA"],
             ["Back Admin"],
         ],
         resize_keyboard=True,
@@ -251,6 +262,30 @@ def get_user_display_name(user):
         return full_name
 
     return str(user.get("id", "Unknown"))
+
+
+def validate_promo_data(data):
+    if not isinstance(data, dict):
+        return None
+
+    if not any(category in data for category in CATEGORIES):
+        return None
+
+    restored = default_data()
+    for category in CATEGORIES:
+        value = data.get(category, {})
+        restored[category] = value if isinstance(value, dict) else {}
+
+    return restored
+
+
+def build_promo_item(folder, item_key, images, start_date, end_date):
+    return {
+        "title": CATEGORY_4_RM10 if folder == CATEGORY_4_RM10 else f"{folder} {item_key}",
+        "images": images,
+        "start": start_date,
+        "end": end_date,
+    }
 
 
 def build_caption(item):
@@ -322,6 +357,50 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data.clear()
     await show_admin_menu(update, context)
+
+
+async def backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    save_user(update)
+
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("No access.")
+        return
+
+    save_data(load_data())
+    save_users(load_users())
+
+    for file_path, label in ((DATA_FILE, "data.json"), (USERS_FILE, "users.json")):
+        if not os.path.exists(file_path):
+            await update.message.reply_text(f"{label} tidak dijumpai.")
+            continue
+
+        with open(file_path, "rb") as document:
+            await update.message.reply_document(
+                document=document,
+                filename=label,
+                caption=f"Backup {label}",
+            )
+
+
+async def restore(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    save_user(update)
+
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("No access.")
+        return
+
+    context.user_data.clear()
+    context.user_data["mode"] = "restore_data"
+    await update.message.reply_text(
+        "Upload file data.json untuk restore promo.",
+        reply_markup=get_back_menu(),
+    )
 
 
 async def show_or_menu(update, context):
@@ -534,7 +613,7 @@ async def show_storage_info(update):
     await update.message.reply_text(response, reply_markup=get_admin_storage_menu())
 
 
-async def handle_admin_panel_action(update, message):
+async def handle_admin_panel_action(update, context, message):
     if message == "Back Admin":
         await show_admin_menu(update)
         return True
@@ -569,6 +648,14 @@ async def handle_admin_panel_action(update, message):
 
     if message == "STORAGE INFO":
         await show_storage_info(update)
+        return True
+
+    if message == "BACKUP DATA":
+        await backup(update, None)
+        return True
+
+    if message == "RESTORE DATA":
+        await restore(update, context)
         return True
 
     return False
@@ -616,6 +703,42 @@ async def handle_admin_state(update, context, message):
     if not mode:
         return False
 
+    if mode == "restore_data":
+        document = update.message.document
+        if not document:
+            await update.message.reply_text(
+                "Sila upload file data.json.",
+                reply_markup=get_back_menu(),
+            )
+            return True
+
+        os.makedirs(DATA_DIR, exist_ok=True)
+        temp_path = os.path.join(DATA_DIR, "_restore_data.json")
+
+        try:
+            telegram_file = await document.get_file()
+            await telegram_file.download_to_drive(custom_path=temp_path)
+
+            with open(temp_path, "r", encoding="utf-8") as file:
+                restored_data = validate_promo_data(json.load(file))
+
+            if restored_data is None:
+                await update.message.reply_text("File JSON tidak sah.")
+                return True
+
+            save_data(restored_data)
+        except (JSONDecodeError, OSError, TelegramError) as error:
+            await update.message.reply_text(f"Restore gagal: {error}")
+            return True
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+        context.user_data.clear()
+        await update.message.reply_text("Restore data berjaya!")
+        await show_admin_menu(update)
+        return True
+
     if mode == "select_number":
         if message not in {"1", "2", "3", "4", "5"}:
             await update.message.reply_text(
@@ -636,13 +759,7 @@ async def handle_admin_state(update, context, message):
             return True
 
         folder = context.user_data["category"]
-        item_key = context.user_data["item"]
-
-        data = load_data()
-        data.setdefault(folder, {})
-        data[folder].setdefault(item_key, {})
-        data[folder][item_key]["images"] = [file_id]
-        save_data(data)
+        context.user_data["images"] = [file_id]
 
         if folder == CATEGORY_4_RM10:
             context.user_data["mode"] = "start_date"
@@ -659,14 +776,8 @@ async def handle_admin_state(update, context, message):
             return True
 
         folder = context.user_data["category"]
-        item_key = context.user_data["item"]
-
-        data = load_data()
-        data.setdefault(folder, {})
-        data[folder].setdefault(item_key, {})
-        data[folder][item_key].setdefault("images", [])
-        data[folder][item_key]["images"].append(file_id)
-        save_data(data)
+        context.user_data.setdefault("images", [])
+        context.user_data["images"].append(file_id)
 
         context.user_data["mode"] = "start_date"
         await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
@@ -689,19 +800,51 @@ async def handle_admin_state(update, context, message):
 
         folder = context.user_data["category"]
         item_key = context.user_data["item"]
+        images = context.user_data.get("images", [])
+        pending_item = build_promo_item(
+            folder,
+            item_key,
+            images,
+            context.user_data["start_date"],
+            message,
+        )
+
+        context.user_data["pending_item"] = pending_item
+        context.user_data["mode"] = "confirm_update"
+
+        await update.message.reply_text("Preview promo:")
+        await send_images(update, context, pending_item)
+        await update.message.reply_text(
+            "Confirm untuk simpan update ini?",
+            reply_markup=get_confirm_menu(),
+        )
+        return True
+
+    if mode == "confirm_update":
+        if message == "CANCEL UPDATE":
+            context.user_data.clear()
+            await update.message.reply_text("Update dibatalkan.")
+            await show_admin_menu(update)
+            return True
+
+        if message != "CONFIRM UPDATE":
+            await update.message.reply_text(
+                "Sila pilih CONFIRM UPDATE atau CANCEL UPDATE.",
+                reply_markup=get_confirm_menu(),
+            )
+            return True
+
+        folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+        pending_item = context.user_data["pending_item"]
 
         data = load_data()
         data.setdefault(folder, {})
-        data[folder].setdefault(item_key, {})
-        data[folder][item_key]["title"] = (
-            CATEGORY_4_RM10 if folder == CATEGORY_4_RM10 else f"{folder} {item_key}"
-        )
-        data[folder][item_key]["start"] = context.user_data["start_date"]
-        data[folder][item_key]["end"] = message
+        data[folder][item_key] = pending_item
         save_data(data)
 
         context.user_data.clear()
-        await update.message.reply_text("Update berjaya!")
+        await update.message.reply_text("Update berjaya disimpan!")
         await show_admin_menu(update)
         return True
 
@@ -754,7 +897,7 @@ async def handle_message(update, context):
         await show_admin_menu(update, context)
         return
 
-    if user_id == ADMIN_ID and await handle_admin_panel_action(update, message):
+    if user_id == ADMIN_ID and await handle_admin_panel_action(update, context, message):
         return
 
     if user_id == ADMIN_ID and await handle_update_trigger(update, context, message):
@@ -827,6 +970,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu))
     app.add_handler(CommandHandler("admin", admin))
+    app.add_handler(CommandHandler("backup", backup))
+    app.add_handler(CommandHandler("restore", restore))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
 
     print("Bot running...")
