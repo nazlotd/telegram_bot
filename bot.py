@@ -146,7 +146,7 @@ def get_confirm_menu():
     return ReplyKeyboardMarkup(
         [
             ["CONFIRM UPDATE", "CANCEL UPDATE"],
-            ["Back Admin"],
+            ["⬅️ Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -179,7 +179,7 @@ def get_admin_update_menu():
         [
             ["UPDATE OR", "UPDATE GE"],
             ["UPDATE 4 RM10", "UPDATE STANDEE"],
-            ["Back Admin"],
+            ["⬅️ Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -189,7 +189,7 @@ def get_admin_manage_menu():
     return ReplyKeyboardMarkup(
         [
             ["PROMO LIST"],
-            ["Back Admin"],
+            ["⬅️ Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -199,7 +199,7 @@ def get_admin_users_menu():
     return ReplyKeyboardMarkup(
         [
             ["USER LIST", "ADMIN STATS"],
-            ["Back Admin"],
+            ["⬅️ Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -210,14 +210,18 @@ def get_admin_storage_menu():
         [
             ["STORAGE INFO"],
             ["BACKUP DATA", "RESTORE DATA"],
-            ["Back Admin"],
+            ["⬅️ Back Admin"],
         ],
         resize_keyboard=True,
     )
 
 
 def normalise_back_button(message):
-    return message.endswith(BUTTON_BACK)
+    return message in {BUTTON_BACK, "Back", "← Back", "⬅ Back", "⬅️ Back"}
+
+
+def normalise_admin_back_button(message):
+    return message in {"⬅️ Back Admin", "⬅ Back Admin", "Back Admin"}
 
 
 def is_admin_button(message):
@@ -614,7 +618,7 @@ async def show_storage_info(update):
 
 
 async def handle_admin_panel_action(update, context, message):
-    if message == "Back Admin":
+    if normalise_admin_back_button(message):
         await show_admin_menu(update)
         return True
 
