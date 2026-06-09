@@ -2,6 +2,19 @@
 
 Data promo yang admin update melalui bot disimpan dalam JSON.
 
+## Token Bot
+
+Untuk local development, boleh letak token dalam fail `.env`:
+
+```text
+TOKEN=123456:ABCDEF
+```
+
+Fail `.env` sudah di-ignore oleh Git.
+
+Untuk hosting/deploy, set `TOKEN` sebagai environment variable di dashboard
+hosting.
+
 Untuk elak data hilang selepas redeploy, set environment variable `DATA_DIR`
 kepada folder persistent storage di hosting.
 

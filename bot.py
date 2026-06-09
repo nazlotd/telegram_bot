@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from json import JSONDecodeError
@@ -33,6 +34,13 @@ from config import (
     TOKEN,
     USERS_FILE,
 )
+
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 
 def default_data():
@@ -878,6 +886,10 @@ async def handle_date_info(update):
     await update.message.reply_text(response)
 
 
+async def handle_error(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.exception("Unhandled bot error", exc_info=context.error)
+
+
 # ================= MESSAGE HANDLER =================
 async def handle_message(update, context):
     if not update.message:
@@ -977,11 +989,12 @@ def main():
     app.add_handler(CommandHandler("backup", backup))
     app.add_handler(CommandHandler("restore", restore))
     app.add_handler(MessageHandler(~filters.COMMAND, handle_message))
+    app.add_error_handler(handle_error)
 
-    print("Bot running...")
-    print(f"DATA_DIR: {DATA_DIR}")
-    print(f"DATA_FILE: {DATA_FILE}")
-    print(f"USERS_FILE: {USERS_FILE}")
+    logger.info("Bot running...")
+    logger.info("DATA_DIR: %s", DATA_DIR)
+    logger.info("DATA_FILE: %s", DATA_FILE)
+    logger.info("USERS_FILE: %s", USERS_FILE)
     app.run_polling()
 
 
