@@ -524,7 +524,7 @@ async def send_images(update, context, item):
         )
     except TelegramError as error:
         await update.message.reply_text(
-            f"Gagal hantar gambar. Sila update gambar semula.\nError: {error}"
+            f"Gagal Hantar gambar. Sila update gambar semula.\nError: {error}"
         )
 
 
