@@ -178,6 +178,7 @@
       font-size: 13px;
       font-weight: 600;
       text-align: center;
+      overflow-wrap: anywhere;
       cursor: pointer;
       font-family: inherit;
     }
@@ -285,9 +286,10 @@
 
           <div class="bubble">
 📢 PROMOTION
-
 🏷️ Title: OR 1
-📅 Date : 01/01/2026 - 31/01/2026
+
+📅 EFFECTIVE DATE
+    <strong>01/01/2026 - 31/01/2026</strong>
 
 ━━━━━━━━━━━━━━━━
 📌 Please refer to Nazs for latest update.
@@ -308,31 +310,35 @@
       </section>
 
       <section class="panel">
-        <h2>Admin Panel Baru</h2>
+        <h2>Preview Menu Semasa</h2>
         <div class="mini-grid">
           <div class="mini">
-            <strong>Admin Panel</strong>
-            Update Promo<br>
-            Manage Promo<br>
-            Users / Storage<br>
-            ⬅️ Back
+            <strong>Main Menu</strong>
+            OR / GE<br>
+            4 RM10_PERAYAAN<br>
+            COUNTER A,B / P.WING / STANDEE<br>
+            DATE INFO
           </div>
           <div class="mini">
-            <strong>Update Promo</strong>
-            UPDATE OR / UPDATE GE<br>
+            <strong>Counter / P.WING / Standee</strong>
+            COUNTER A/B<br>
+            P.WING<br>
+            STANDEE > CAT / DETTOL / DUTH LADY
+          </div>
+          <div class="mini">
+            <strong>Admin Update</strong>
+            UPDATE OR / GE<br>
             UPDATE 4 RM10<br>
+            UPDATE COUNTER A/B / P.WING<br>
             UPDATE STANDEE<br>
             ⬅️ Back Admin
           </div>
           <div class="mini">
-            <strong>Users</strong>
-            USER LIST<br>
-            ADMIN STATS<br>
-            ⬅️ Back Admin
-          </div>
-          <div class="mini">
-            <strong>Storage</strong>
+            <strong>Admin Tools</strong>
+            PROMO LIST<br>
+            USER LIST / ADMIN STATS<br>
             STORAGE INFO<br>
+            BACKUP DATA / RESTORE DATA<br>
             ⬅️ Back Admin
           </div>
         </div>
@@ -346,7 +352,8 @@
     const menus = {
       main: [
         ["OR", "GE"],
-        ["4 RM10_PERAYAAN", "STANDEE"],
+        ["4 RM10_PERAYAAN"],
+        ["COUNTER A,B / P.WING / STANDEE"],
         ["DATE INFO"],
         ["Admin"],
       ],
@@ -358,7 +365,9 @@
       ],
       update: [
         ["UPDATE OR", "UPDATE GE"],
-        ["UPDATE 4 RM10", "UPDATE STANDEE"],
+        ["UPDATE 4 RM10"],
+        ["UPDATE COUNTER A/B", "UPDATE P.WING"],
+        ["UPDATE STANDEE"],
         ["⬅️ Back Admin"],
       ],
       manage: [
@@ -371,6 +380,7 @@
       ],
       storage: [
         ["STORAGE INFO"],
+        ["BACKUP DATA", "RESTORE DATA"],
         ["⬅️ Back Admin"],
       ],
       numbers: [
@@ -393,9 +403,20 @@
         ["GE 5"],
         ["⬅️ Back"],
       ],
-      standeeList: [
-        ["1", "2", "3", "4", "5"],
+      standeeMain: [
+        ["COUNTER A/B", "P.WING"],
+        ["STANDEE"],
         ["⬅️ Back"],
+      ],
+      standeeItems: [
+        ["CAT", "DETTOL"],
+        ["DUTH LADY"],
+        ["⬅️ Back"],
+      ],
+      standeeUpdate: [
+        ["UPDATE CAT", "UPDATE DETTOL"],
+        ["UPDATE DUTH LADY"],
+        ["⬅️ Back Admin"],
       ],
     };
 
@@ -419,11 +440,38 @@
       messages.scrollTop = messages.scrollHeight;
     }
 
-    function addPromo(title = "OR 1") {
-      addBubble(`📢 PROMOTION
+    function addHtmlBubble(html) {
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = html;
 
-🏷️ Title: ${title}
-📅 Date : 01/01/2026 - 31/01/2026
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = timeNow();
+      bubble.appendChild(time);
+
+      messages.appendChild(bubble);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      }[char]));
+    }
+
+    function addPromo(title = "OR 1", hasDate = true) {
+      const dateText = hasDate ? `
+
+📅 EFFECTIVE DATE
+    <strong>01/01/2026 - 31/01/2026</strong>` : "";
+
+      addHtmlBubble(`📢 PROMOTION
+🏷️ Title: ${escapeHtml(title)}${dateText}
 
 ━━━━━━━━━━━━━━━━
 📌 Please refer to Nazs for latest update.`);
@@ -452,9 +500,35 @@
       activeUpdate = label.replace("UPDATE ", "");
       addBubble(label, "user");
 
+      if (label === "UPDATE STANDEE") {
+        addBubble("Pilih item STANDEE yang nak diupdate.");
+        setMenu("standeeUpdate");
+        return;
+      }
+
+      if (["UPDATE CAT", "UPDATE DETTOL", "UPDATE DUTH LADY"].includes(label)) {
+        addBubble(`Upload gambar untuk ${activeUpdate}.`);
+        setMenu("update");
+        return;
+      }
+
       if (label === "UPDATE 4 RM10") {
         addBubble("Upload gambar baru.");
         setMenu("main");
+        return;
+      }
+
+      if (label === "UPDATE COUNTER A/B") {
+        addBubble("Upload gambar untuk COUNTER A/B.");
+        addBubble("Flow: Gambar A > Gambar B > tarikh mula > tarikh tamat > confirm.");
+        setMenu("update");
+        return;
+      }
+
+      if (label === "UPDATE P.WING") {
+        addBubble("Upload gambar untuk P.WING.");
+        addBubble("Flow: 1 gambar > tarikh mula > tarikh tamat > confirm.");
+        setMenu("update");
         return;
       }
 
@@ -497,10 +571,19 @@
           setMenu("geList");
         },
         "4 RM10_PERAYAAN": () => addPromo("4 RM10_PERAYAAN"),
+        "COUNTER A,B / P.WING / STANDEE": () => {
+          addBubble("Pilih menu:");
+          setMenu("standeeMain");
+        },
+        "COUNTER A/B": () => addPromo("COUNTER A/B"),
+        "P.WING": () => addPromo("P.WING"),
         "STANDEE": () => {
           addBubble("Pilih Standee:");
-          setMenu("standeeList");
+          setMenu("standeeItems");
         },
+        "CAT": () => addPromo("CAT", false),
+        "DETTOL": () => addPromo("DETTOL", false),
+        "DUTH LADY": () => addPromo("DUTH LADY", false),
         "DATE INFO": () => addBubble(`DATE INFO
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -535,7 +618,7 @@ TIME WAITS FOR NO ONE`),
 ------------------
 OR: 1, 2, 3, 4, 5
 GE: 1, 2, 3, 4, 5
-STANDEE: 1, 2, 3, 4, 5
+STANDEE: COUNTER A/B, P.WING, CAT, DETTOL, DUTH LADY
 4 RM10_PERAYAAN: 1`),
         "USER LIST": () => addBubble(`USER LIST (3 total)
 ------------------
@@ -549,8 +632,10 @@ Total user: 3
 Promo:
 OR: 5 item, 10 gambar
 GE: 5 item, 10 gambar
-STANDEE: 5 item, 10 gambar
+STANDEE: 5 item, 6 gambar
 4 RM10_PERAYAAN: 1 item, 1 gambar`),
+        "BACKUP DATA": () => addBubble("Backup data.json dan users.json dihantar kepada admin."),
+        "RESTORE DATA": () => addBubble("Upload file data.json untuk restore promo."),
         "STORAGE INFO": () => addBubble(`STORAGE INFO
 ------------------
 DATA_DIR:
