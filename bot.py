@@ -376,8 +376,8 @@ def build_caption(item):
         lines.extend(
             [
                 "",
-                "📅 EFFECTIVE DATE",
-                f"   <b>{item.get('start')} - {item.get('end')}</b>",
+                "📅 <b>EFFECTIVE DATE</b>",
+                f"    <b>{item.get('start')} - {item.get('end')}</b>",
             ]
         )
 
