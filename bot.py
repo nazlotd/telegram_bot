@@ -51,6 +51,14 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+def make_keyboard(buttons):
+    return ReplyKeyboardMarkup(
+        buttons,
+        resize_keyboard=True,
+        is_persistent=True,
+    )
+
+
 PROMO_RULES = {
     CATEGORY_OR: {"image_count": 2, "needs_date": True},
     CATEGORY_GE: {"image_count": 2, "needs_date": True},
@@ -164,119 +172,109 @@ def get_main_menu(user_id):
     if user_id == ADMIN_ID:
         buttons.append([BUTTON_ADMIN])
 
-    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    return make_keyboard(buttons)
 
 
 def get_back_menu():
-    return ReplyKeyboardMarkup([[BUTTON_BACK]], resize_keyboard=True)
+    return make_keyboard([[BUTTON_BACK]])
 
 
 def get_confirm_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["CONFIRM UPDATE", "CANCEL UPDATE"],
             ["⬅️ Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_number_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["1", "2", "3", "4", "5"],
             [BUTTON_BACK],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["Update Promo"],
             ["Manage Promo"],
             ["Users", "Storage"],
             [BUTTON_BACK],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_update_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["UPDATE OR", "UPDATE GE"],
             ["UPDATE 4 RM10"],
             ["UPDATE COUNTER A/B", "UPDATE P.WING"],
             ["UPDATE STANDEE"],
             ["⬅️ Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_standee_main_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             [ITEM_COUNTER_AB, ITEM_P_WING],
             [CATEGORY_STANDEE],
             [BUTTON_BACK],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_standee_items_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             [ITEM_CAT, ITEM_DETTOL],
             [ITEM_DUTH_LADY],
             [BUTTON_BACK],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_standee_update_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             [f"UPDATE {ITEM_CAT}", f"UPDATE {ITEM_DETTOL}"],
             [f"UPDATE {ITEM_DUTH_LADY}"],
             ["Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_manage_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["PROMO LIST"],
             ["⬅️ Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_users_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["USER LIST", "ADMIN STATS"],
             ["⬅️ Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
 def get_admin_storage_menu():
-    return ReplyKeyboardMarkup(
+    return make_keyboard(
         [
             ["STORAGE INFO"],
             ["BACKUP DATA", "RESTORE DATA"],
             ["⬅️ Back Admin"],
-        ],
-        resize_keyboard=True,
+        ]
     )
 
 
@@ -503,7 +501,7 @@ async def show_or_menu(update, context):
 
     await update.message.reply_text(
         "OR LIST",
-        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
+        reply_markup=make_keyboard(buttons),
     )
 
 
@@ -514,7 +512,7 @@ async def show_ge_menu(update, context):
 
     await update.message.reply_text(
         "GE LIST",
-        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
+        reply_markup=make_keyboard(buttons),
     )
 
 
