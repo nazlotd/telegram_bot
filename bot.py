@@ -18,6 +18,7 @@ from config import (
     ADMIN_ID,
     BUTTON_ADMIN,
     BUTTON_BACK,
+    BUTTON_COUNTER_PWING_STANDEE,
     BUTTON_DATE_INFO,
     BUTTON_GE,
     BUTTON_OR,
@@ -31,6 +32,12 @@ from config import (
     INTRO_ANIMATION_FILE,
     INTRO_FILE,
     INTRO_GIF_FILE,
+    ITEM_CAT,
+    ITEM_COUNTER_AB,
+    ITEM_DETTOL,
+    ITEM_DUTH_LADY,
+    ITEM_P_WING,
+    STANDEE_ITEMS,
     TOKEN,
     USERS_FILE,
 )
@@ -42,6 +49,18 @@ logging.basicConfig(
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
+
+
+PROMO_RULES = {
+    CATEGORY_OR: {"image_count": 2, "needs_date": True},
+    CATEGORY_GE: {"image_count": 2, "needs_date": True},
+    CATEGORY_4_RM10: {"image_count": 1, "needs_date": True},
+    ITEM_COUNTER_AB: {"image_count": 2, "needs_date": True},
+    ITEM_P_WING: {"image_count": 1, "needs_date": True},
+    ITEM_CAT: {"image_count": 1, "needs_date": False},
+    ITEM_DETTOL: {"image_count": 1, "needs_date": False},
+    ITEM_DUTH_LADY: {"image_count": 1, "needs_date": False},
+}
 
 
 def default_data():
@@ -137,7 +156,8 @@ def save_user(update):
 def get_main_menu(user_id):
     buttons = [
         [BUTTON_OR, BUTTON_GE],
-        [CATEGORY_4_RM10, CATEGORY_STANDEE],
+        [CATEGORY_4_RM10],
+        [BUTTON_COUNTER_PWING_STANDEE],
         [BUTTON_DATE_INFO],
     ]
 
@@ -187,8 +207,43 @@ def get_admin_update_menu():
     return ReplyKeyboardMarkup(
         [
             ["UPDATE OR", "UPDATE GE"],
-            ["UPDATE 4 RM10", "UPDATE STANDEE"],
+            ["UPDATE 4 RM10"],
+            ["UPDATE COUNTER A/B", "UPDATE P.WING"],
+            ["UPDATE STANDEE"],
             ["⬅️ Back Admin"],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_standee_main_menu():
+    return ReplyKeyboardMarkup(
+        [
+            [ITEM_COUNTER_AB, ITEM_P_WING],
+            [CATEGORY_STANDEE],
+            [BUTTON_BACK],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_standee_items_menu():
+    return ReplyKeyboardMarkup(
+        [
+            [ITEM_CAT, ITEM_DETTOL],
+            [ITEM_DUTH_LADY],
+            [BUTTON_BACK],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def get_admin_standee_update_menu():
+    return ReplyKeyboardMarkup(
+        [
+            [f"UPDATE {ITEM_CAT}", f"UPDATE {ITEM_DETTOL}"],
+            [f"UPDATE {ITEM_DUTH_LADY}"],
+            ["Back Admin"],
         ],
         resize_keyboard=True,
     )
@@ -293,22 +348,42 @@ def validate_promo_data(data):
 
 
 def build_promo_item(folder, item_key, images, start_date, end_date):
+    title = CATEGORY_4_RM10 if folder == CATEGORY_4_RM10 else f"{folder} {item_key}"
+    if folder == CATEGORY_STANDEE:
+        title = item_key
+
     return {
-        "title": CATEGORY_4_RM10 if folder == CATEGORY_4_RM10 else f"{folder} {item_key}",
+        "title": title,
         "images": images,
         "start": start_date,
         "end": end_date,
     }
 
 
+def get_promo_rule(folder, item_key):
+    if folder == CATEGORY_STANDEE:
+        return PROMO_RULES.get(item_key, {"image_count": 1, "needs_date": False})
+    return PROMO_RULES.get(folder, {"image_count": 2, "needs_date": True})
+
+
 def build_caption(item):
-    return (
-        "📢 PROMOTION\n\n"
-        f"🏷️ Title: {item.get('title', '')}\n"
-        f"📅 Date : {item.get('start', '')} - {item.get('end', '')}\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "📌 Please refer to Nazs for latest update."
+    lines = [
+        "PROMOTION",
+        "",
+        f"Title: {item.get('title', '')}",
+    ]
+
+    if item.get("start") and item.get("end"):
+        lines.append(f"Date : {item.get('start')} - {item.get('end')}")
+
+    lines.extend(
+        [
+            "",
+            "----------------",
+            "Please refer to Nazs for latest update.",
+        ]
     )
+    return "\n".join(lines)
 
 
 def get_photo_file_id(update):
@@ -439,14 +514,16 @@ async def show_ge_menu(update, context):
 
 
 async def show_standee_menu(update, context):
-    data = load_data()
-    standee_data = data.get(CATEGORY_STANDEE, {})
-    buttons = [[key] for key in sorted(standee_data.keys(), key=str)]
-    buttons.append([BUTTON_BACK])
+    await update.message.reply_text(
+        "Pilih menu:",
+        reply_markup=get_standee_main_menu(),
+    )
 
+
+async def show_standee_items_menu(update, context):
     await update.message.reply_text(
         "Pilih Standee:",
-        reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True),
+        reply_markup=get_standee_items_menu(),
     )
 
 
@@ -684,6 +761,17 @@ async def ask_for_update_number(update, context, category):
     )
 
 
+async def ask_for_named_update(update, context, item_key):
+    context.user_data.clear()
+    context.user_data["category"] = CATEGORY_STANDEE
+    context.user_data["item"] = item_key
+    context.user_data["mode"] = "image_a"
+    await update.message.reply_text(
+        f"Upload gambar untuk {item_key}.",
+        reply_markup=get_back_menu(),
+    )
+
+
 async def handle_update_trigger(update, context, message):
     if message == "UPDATE OR":
         await ask_for_update_number(update, context, CATEGORY_OR)
@@ -694,8 +782,24 @@ async def handle_update_trigger(update, context, message):
         return True
 
     if message == "UPDATE STANDEE":
-        await ask_for_update_number(update, context, CATEGORY_STANDEE)
+        await update.message.reply_text(
+            "Pilih item STANDEE yang nak diupdate.",
+            reply_markup=get_admin_standee_update_menu(),
+        )
         return True
+
+    if message == "UPDATE COUNTER A/B":
+        await ask_for_named_update(update, context, ITEM_COUNTER_AB)
+        return True
+
+    if message == "UPDATE P.WING":
+        await ask_for_named_update(update, context, ITEM_P_WING)
+        return True
+
+    for standee_item in STANDEE_ITEMS:
+        if message == f"UPDATE {standee_item}":
+            await ask_for_named_update(update, context, standee_item)
+            return True
 
     if message == "UPDATE 4 RM10":
         context.user_data.clear()
@@ -772,14 +876,26 @@ async def handle_admin_state(update, context, message):
             return True
 
         folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+        rule = get_promo_rule(folder, item_key)
         context.user_data["images"] = [file_id]
 
-        if folder == CATEGORY_4_RM10:
+        if rule["image_count"] > 1:
+            context.user_data["mode"] = "image_b"
+            await update.message.reply_text("Upload Gambar B.")
+        elif rule["needs_date"]:
             context.user_data["mode"] = "start_date"
             await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
         else:
-            context.user_data["mode"] = "image_b"
-            await update.message.reply_text("Upload Gambar B.")
+            pending_item = build_promo_item(folder, item_key, [file_id], "", "")
+            context.user_data["pending_item"] = pending_item
+            context.user_data["mode"] = "confirm_update"
+            await update.message.reply_text("Preview promo:")
+            await send_images(update, context, pending_item)
+            await update.message.reply_text(
+                "Confirm untuk simpan update ini?",
+                reply_markup=get_confirm_menu(),
+            )
         return True
 
     if mode == "image_b":
@@ -789,11 +905,25 @@ async def handle_admin_state(update, context, message):
             return True
 
         folder = context.user_data["category"]
+        item_key = context.user_data["item"]
+        rule = get_promo_rule(folder, item_key)
         context.user_data.setdefault("images", [])
         context.user_data["images"].append(file_id)
 
-        context.user_data["mode"] = "start_date"
-        await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
+        if rule["needs_date"]:
+            context.user_data["mode"] = "start_date"
+            await update.message.reply_text("Masukkan tarikh mula (DD/MM/YYYY).")
+        else:
+            images = context.user_data.get("images", [])
+            pending_item = build_promo_item(folder, item_key, images, "", "")
+            context.user_data["pending_item"] = pending_item
+            context.user_data["mode"] = "confirm_update"
+            await update.message.reply_text("Preview promo:")
+            await send_images(update, context, pending_item)
+            await update.message.reply_text(
+                "Confirm untuk simpan update ini?",
+                reply_markup=get_confirm_menu(),
+            )
         return True
 
     if mode == "start_date":
@@ -941,11 +1071,23 @@ async def handle_message(update, context):
             await update.message.reply_text("Promo belum diset.")
         return
 
-    if message == CATEGORY_STANDEE:
+    if message == BUTTON_COUNTER_PWING_STANDEE:
         await show_standee_menu(update, context)
         return
 
     standee_data = data.get(CATEGORY_STANDEE, {})
+    if message == CATEGORY_STANDEE:
+        await show_standee_items_menu(update, context)
+        return
+
+    if message in {ITEM_COUNTER_AB, ITEM_P_WING, *STANDEE_ITEMS}:
+        item = standee_data.get(message)
+        if item:
+            await send_images(update, context, item)
+        else:
+            await update.message.reply_text("Promo belum diset.")
+        return
+
     if message in standee_data:
         await send_images(update, context, standee_data[message])
         return
