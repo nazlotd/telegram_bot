@@ -368,19 +368,19 @@ def get_promo_rule(folder, item_key):
 
 def build_caption(item):
     lines = [
-        "PROMOTION",
+        "📢 PROMOTION",
         "",
-        f"Title: {item.get('title', '')}",
+        f"🏷️ Title: {item.get('title', '')}",
     ]
 
     if item.get("start") and item.get("end"):
-        lines.append(f"Date : {item.get('start')} - {item.get('end')}")
+        lines.append(f"📅 EFFECTIVE DATE : {item.get('start')} - {item.get('end')}")
 
     lines.extend(
         [
             "",
-            "----------------",
-            "Please refer to Nazs for latest update.",
+            "━━━━━━━━━━━━━━━━",
+            "📌 Please refer to Nazs for latest update.",
         ]
     )
     return "\n".join(lines)
