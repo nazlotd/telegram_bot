@@ -369,12 +369,17 @@ def get_promo_rule(folder, item_key):
 def build_caption(item):
     lines = [
         "📢 PROMOTION",
-        "",
         f"🏷️ Title: {item.get('title', '')}",
     ]
 
     if item.get("start") and item.get("end"):
-        lines.append(f"📅 EFFECTIVE DATE : {item.get('start')} - {item.get('end')}")
+        lines.extend(
+            [
+                "",
+                "📅 EFFECTIVE DATE",
+                f"   <b>{item.get('start')} - {item.get('end')}</b>",
+            ]
+        )
 
     lines.extend(
         [
@@ -588,11 +593,19 @@ async def send_images(update, context, item):
 
     try:
         if len(images) == 1:
-            await update.message.reply_photo(photo=images[0], caption=caption)
+            await update.message.reply_photo(
+                photo=images[0],
+                caption=caption,
+                parse_mode="HTML",
+            )
             return
 
         media = [
-            InputMediaPhoto(media=file_id, caption=caption if index == 0 else None)
+            InputMediaPhoto(
+                media=file_id,
+                caption=caption if index == 0 else None,
+                parse_mode="HTML",
+            )
             for index, file_id in enumerate(images)
         ]
         await context.bot.send_media_group(
